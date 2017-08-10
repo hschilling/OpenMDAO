@@ -392,10 +392,26 @@ class BaseRecorder(object):
         else:
             raise ValueError("Recorders must be attached to Drivers, Systems, or Solvers.")
 
-
     def record_iteration_driver_passing_vars(self, object_requesting_recording, desvars, responses,
                                              objectives, constraints, metadata):
+        """
+        Record an iteration using the Driver options.
 
+        Parameters
+        ----------
+        object_requesting_recording : object
+            The Driver in need of recording.
+        metadata : dict, optional
+            Dictionary containing execution metadata.
+        desvars: dict
+            The design variables of the Driver being recorded.
+        responses: dict
+            The responses of the Driver being recorded.
+        objectives: dict
+            The objectives of the Driver being recorded.
+        constraints: dict
+            The constraints of the Driver being recorded.
+        """
         # TODO: this code and the same code in record_iteration should be in a separate method
         if not self._parallel:
             if MPI and MPI.COMM_WORLD.rank > 0:
@@ -440,7 +456,6 @@ class BaseRecorder(object):
                 self._constraints_values = constraints
         else:
             self._constraints_values = None
-
 
     def record_iteration_driver(self, object_requesting_recording, metadata):
         """
@@ -634,4 +649,3 @@ class BaseRecorder(object):
         Cleanup the recorder.
         """
         pass
-

@@ -101,7 +101,6 @@ class SqliteRecorder(BaseRecorder):
             self.cursor.execute("CREATE TABLE solver_metadata(id TEXT PRIMARY KEY, "
                                 "solver_options BLOB, solver_class TEXT)")
 
-
     def record_iteration_driver_passing_vars(self, object_requesting_recording, desvars,
                                              responses, objectives, constraints, metadata):
         """
@@ -109,10 +108,18 @@ class SqliteRecorder(BaseRecorder):
 
         Parameters
         ----------
-        object_requesting_recording: <Driver>
-            The Driver object that wants to record an iteration.
-        metadata : dict
-            Dictionary containing execution metadata (e.g. iteration coordinate).
+        object_requesting_recording : <Driver>
+            The Driver that wants to record an iteration.
+        metadata : dict, optional
+            Dictionary containing execution metadata.
+        desvars: dict
+            The design variables of the Driver being recorded.
+        responses: dict
+            The responses of the Driver being recorded.
+        objectives: dict
+            The objectives of the Driver being recorded.
+        constraints: dict
+            The constraints of the Driver being recorded.
         """
         # make a nested numpy named array using the example
         #   http://stackoverflow.com/questions/19201868/how-to-set-dtype-for-nested-numpy-ndarray
@@ -124,9 +131,8 @@ class SqliteRecorder(BaseRecorder):
         #                                      ('throughput', 'f')], (2,))
         #                       ])
 
-        super(SqliteRecorder, self).record_iteration_driver_passing_vars(object_requesting_recording,
-                                                                         desvars, responses,
-                                                                         objectives, constraints, metadata)
+        super(SqliteRecorder, self).record_iteration_driver_passing_vars(
+            object_requesting_recording, desvars, responses, objectives, constraints, metadata)
 
         # Just an example of the syntax for creating a numpy structured array
         # arr = np.zeros((1,), dtype=[('dv_x','(5,)f8'),('dv_y','(10,)f8')])
@@ -454,9 +460,9 @@ class SqliteRecorder(BaseRecorder):
         object_requesting_recording: <System>
             The System that would like to record its metadata.
         """
-
         from openmdao.api import PETScVector
-        if isinstance(object_requesting_recording._scaling_vecs[('input', 'norm0')]['linear'], PETScVector):
+        if isinstance(object_requesting_recording._scaling_vecs[('input', 'norm0')]['linear'],
+                      PETScVector):
             return  # Cannot handle PETScVector yet
 
         scaling_factors = pickle.dumps(object_requesting_recording._scaling_vecs,

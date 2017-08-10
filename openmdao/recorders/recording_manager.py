@@ -25,13 +25,12 @@ class RecordingManager(object):
         """
         init.
         """
-
         self._vars_to_record = {
             'desvarnames': set(),
             'responsenames': set(),
             'objectivenames': set(),
             'constraintnames': set(),
-            }
+        }
 
         self._recorders = []
         self._has_serial_recorders = False
@@ -59,10 +58,21 @@ class RecordingManager(object):
         return iter(self._recorders)
 
     def _gather_vars(self, root, local_vars):
-        """Gathers and returns only variables listed in
-        `local_vars` from the `root` System.
         """
+        Gather and return only variables listed in `local_vars` from the `root` System.
 
+        Parameters
+        ----------
+        root : <System>
+            The root System.
+        local_vars : <list>
+            Local vars of the root System.
+
+        Returns
+        -------
+        dct : <dict>
+            A dictionary of gathered local variables from the `root` System.
+        """
         # if trace:
         #     debug("gathering vars for recording in %s" % root.pathname)
         all_vars = root.comm.gather(local_vars, root=0)
@@ -106,11 +116,14 @@ class RecordingManager(object):
                 raise RuntimeError(
                     "RecordingManager.startup should never be called when "
                     "running in parallel on an inactive System")
-            rrank = object_requesting_recording._problem.comm.rank  # root ( aka model ) rank. So this only works for
+            # root (aka model) rank.
+            rrank = object_requesting_recording._problem.comm.rank
             # Compute owning ranks
             rowned = {}
-            for varname, out_var_idx in iteritems(model._var_allprocs_abs2idx['output']):
-                rowned[varname] = np.min(np.nonzero(model._var_sizes['output'][:, out_var_idx])[0][0])
+            for varname, out_var_idx in \
+                    iteritems(model._var_allprocs_abs2idx['output']):
+                rowned[varname] = \
+                    np.min(np.nonzero(model._var_sizes['output'][:, out_var_idx])[0][0])
 
         self._record_desvars = self._record_responses = False
         self._record_objectives = self._record_constraints = False
@@ -216,10 +229,14 @@ class RecordingManager(object):
                     constraints = {c: constraints[c] for c in constraintnames}
 
                 if self._has_serial_recorders:
-                    desvars = self._gather_vars(root, desvars) if self._record_desvars else {}
-                    responses = self._gather_vars(root, responses) if self._record_responses else {}
-                    objectives = self._gather_vars(root, objectives) if self._record_objectives else {}
-                    constraints = self._gather_vars(root, constraints) if self._record_constraints else {}
+                    desvars = self._gather_vars(root, desvars) \
+                        if self._record_desvars else {}
+                    responses = self._gather_vars(root, responses) \
+                        if self._record_responses else {}
+                    objectives = self._gather_vars(root, objectives) \
+                        if self._record_objectives else {}
+                    constraints = self._gather_vars(root, constraints) \
+                        if self._record_constraints else {}
 
         # If the recorder does not support parallel recording
         # we need to make sure we only record on rank 0.
@@ -227,8 +244,10 @@ class RecordingManager(object):
             if recorder._parallel or MPI is None or self.rank == 0:
                 # recorder.record_iteration(params, unknowns, resids, meta)
                 if isinstance(object_requesting_recording, Driver):
-                    recorder.record_iteration_driver_passing_vars(object_requesting_recording, desvars, responses,
-                                                                  objectives, constraints, metadata)
+                    recorder.record_iteration_driver_passing_vars(object_requesting_recording,
+                                                                  desvars, responses,
+                                                                  objectives, constraints,
+                                                                  metadata)
                 else:
                     recorder.record_iteration(object_requesting_recording, metadata, **kwargs)
 

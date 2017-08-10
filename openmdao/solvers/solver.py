@@ -6,7 +6,6 @@ import os
 
 import numpy as np
 
-
 from openmdao.core.analysis_error import AnalysisError
 from openmdao.jacobians.assembled_jacobian import AssembledJacobian
 from openmdao.recorders.recording_iteration_stack import Recording, recording_iteration_stack
@@ -14,6 +13,7 @@ from openmdao.recorders.recording_manager import RecordingManager
 from openmdao.utils.mpi import MPI
 from openmdao.utils.options_dictionary import OptionsDictionary
 from openmdao.utils.record_util import create_local_meta
+
 
 class SolverInfo(object):
     """
@@ -114,7 +114,8 @@ class Solver(object):
            A recorder instance to be added to RecManager.
         """
         if MPI:
-            raise RuntimeError("Recording of Solvers when running parallel code is not supported yet")
+            raise RuntimeError("Recording of Solvers when running parallel "
+                               "code is not supported yet")
         self._rec_mgr.append(recorder)
 
     def _declare_options(self):

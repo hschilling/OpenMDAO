@@ -2833,6 +2833,8 @@ class System(object):
 
     def is_active(self):
         """
+        Find out if the current system has a valid MPI communicator.
+
         Returns
         -------
         bool
