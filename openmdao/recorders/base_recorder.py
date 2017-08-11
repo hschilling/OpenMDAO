@@ -381,10 +381,7 @@ class BaseRecorder(object):
 
         self._iteration_coordinate = get_formatted_iteration_coordinate()
 
-        if isinstance(object_requesting_recording, Driver):
-            self.record_iteration_driver(object_requesting_recording, metadata)
-
-        elif isinstance(object_requesting_recording, System):
+        if isinstance(object_requesting_recording, System):
             self.record_iteration_system(object_requesting_recording, metadata)
 
         elif isinstance(object_requesting_recording, Solver):
@@ -392,8 +389,8 @@ class BaseRecorder(object):
         else:
             raise ValueError("Recorders must be attached to Drivers, Systems, or Solvers.")
 
-    def record_iteration_driver_passing_vars(self, object_requesting_recording, desvars, responses,
-                                             objectives, constraints, metadata):
+    def record_iteration_driver(self, object_requesting_recording, desvars, responses,
+                                objectives, constraints, metadata):
         """
         Record an iteration using the Driver options.
 
@@ -454,64 +451,6 @@ class BaseRecorder(object):
                     {name: constraints[name] for name in self._filtered_driver['con']}
             else:
                 self._constraints_values = constraints
-        else:
-            self._constraints_values = None
-
-    def record_iteration_driver(self, object_requesting_recording, metadata):
-        """
-        Record an iteration using the driver options.
-
-        Parameters
-        ----------
-        object_requesting_recording: <Driver>
-            The Driver object that wants to record an iteration.
-        metadata : dict
-            Dictionary containing execution metadata.
-        """
-        # make a nested numpy named array using the example
-        #   http://stackoverflow.com/questions/19201868/how-to-set-dtype-for-nested-numpy-ndarray
-        # e.g.
-        # table = np.array(data, dtype=[('instrument', 'S32'),
-        #                        ('filter', 'S64'),
-        #                        ('response', [('linenumber', 'i'),
-        #                                      ('wavelength', 'f'),
-        #                                      ('throughput', 'f')], (2,))
-        #                       ])
-
-        if self.options['record_desvars']:
-            if self._filtered_driver:
-                desvars_values = \
-                    object_requesting_recording.get_design_var_values(self._filtered_driver['des'])
-            else:
-                desvars_values = object_requesting_recording.get_design_var_values()
-            self._desvars_values = desvars_values
-        else:
-            self._desvars_values = None
-
-        if self.options['record_responses']:
-            if self._filtered_driver:
-                self._responses_values = \
-                    object_requesting_recording.get_response_values(self._filtered_driver['res'])
-            else:
-                self._responses_values = object_requesting_recording.get_response_values()
-        else:
-            self._responses_values = None
-
-        if self.options['record_objectives']:
-            if self._filtered_driver:
-                self._objectives_values = \
-                    object_requesting_recording.get_objective_values(self._filtered_driver['obj'])
-            else:
-                self._objectives_values = object_requesting_recording.get_objective_values()
-        else:
-            self._objectives_values = None
-
-        if self.options['record_constraints']:
-            if self._filtered_driver:
-                self._constraints_values = \
-                    object_requesting_recording.get_constraint_values(self._filtered_driver['con'])
-            else:
-                self._constraints_values = object_requesting_recording.get_constraint_values()
         else:
             self._constraints_values = None
 

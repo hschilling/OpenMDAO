@@ -242,19 +242,11 @@ class RecordingManager(object):
         # we need to make sure we only record on rank 0.
         for recorder in self._recorders:
             if recorder._parallel or MPI is None or self.rank == 0:
-                # recorder.record_iteration(params, unknowns, resids, meta)
                 if isinstance(object_requesting_recording, Driver):
-                    recorder.record_iteration_driver_passing_vars(object_requesting_recording,
-                                                                  desvars, responses,
-                                                                  objectives, constraints,
-                                                                  metadata)
+                    recorder.record_iteration_driver(object_requesting_recording, desvars,
+                                                     responses, objectives, constraints, metadata)
                 else:
                     recorder.record_iteration(object_requesting_recording, metadata, **kwargs)
-
-        # Old serial way
-        # for recorder in self._recorders:
-        #     if recorder._parallel or MPI is None or self.rank == 0:
-        #         recorder.record_iteration(object_requesting_recording, metadata, **kwargs)
 
     def record_metadata(self, object_requesting_recording):
         """

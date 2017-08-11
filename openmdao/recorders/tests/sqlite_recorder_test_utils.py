@@ -6,6 +6,7 @@ from openmdao.utils.record_util import format_iteration_coordinate
 from openmdao.devtools.testutil import assert_rel_error
 from openmdao.recorders.sqlite_recorder import blob_to_array
 
+
 def _assertDriverIterationDataRecorded(test, db_cur, expected, tolerance):
     """
         Expected can be from multiple cases.
