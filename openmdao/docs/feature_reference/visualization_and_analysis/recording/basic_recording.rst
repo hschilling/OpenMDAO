@@ -28,6 +28,22 @@ A basic example of how to set an option:
 
     prob.driver.options['record_desvars'] = True
 
+.. embed-options::
+    openmdao.core.driver
+    Driver
+    options
+
+.. embed-options::
+    openmdao.core.system
+    System
+    options
+
+.. embed-options::
+    openmdao.solvers.solver
+    Solver
+    options
+
+
 
 General Recording Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -96,8 +112,6 @@ A More Comprehensive Example
 
 .. code-block:: console
 
-    @unittest.skipIf(OPT is None, "pyoptsparse is not installed" )
-    @unittest.skipIf(OPTIMIZER is None, "pyoptsparse is not providing SNOPT or SLSQP" )
     def test_simple_driver_recording(self):
 
         prob = Problem()
