@@ -1,5 +1,5 @@
 """
-Tools for inspecting OpenMDAO Models
+Tools for making assertions about OpenMDAO Models.
 """
 import numpy as np
 
@@ -9,9 +9,10 @@ from openmdao.jacobians.dictionary_jacobian import DictionaryJacobian
 
 from numpy.testing import assert_allclose
 
+
 def assert_check_partials(data, atol=1e-6, rtol=1e-6):
     """
-    custom assert to make sure all entries in the return from check_partials are below a tolerance
+    Raise assertion if any entry from the return from check_partials is above a tolerance.
 
     Parameters
     ----------
@@ -32,7 +33,6 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6):
     rtol : float
         relative error. Default is 1e-6.
     """
-
     desired = 0.0
     for comp in data:
         for (var, wrt) in data[comp]:
@@ -41,32 +41,14 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6):
                 if not np.isnan(actual).any():
                     assert_allclose(actual, desired, tolerance,
                                     err_msg='{0} error in partial of'
-                                            ' {1} wrt {2} in component {3}'.format(error_type, var, wrt, comp),
+                                            ' {1} wrt {2} in component {3}'.format(error_type,
+                                                                                   var, wrt, comp),
                                     verbose=True)
-                    # assert_almost_equal(data[comp][var, wrt]['abs error'], 0.0, decimal=6,
-                    #                     err_msg='error in partial of'
-                    #                             ' {0} wrt {1} in {2}'.format(var, wrt, comp))
-
-
-                    #  The values that come back from check partials. If tell nans then ignore it
-                    # if np.isnan(error) or error < tol:
-                    #     return '{:.6e}'.format(error)
-                    # return '{:.6e} *'.format(error)
-                    #
-                    # err_msg = 'error in partial of'
-                    # ' {0} wrt {1} in {2}'.format(var, wrt, comp)
-
-                    # if actual > atol:
-                    #     err_msg = 'error in partial of'
-                    #     ' {0} wrt {1} in {2}'.format(var, wrt, comp)
-                    #     raise AssertionError(err_msg)
-
 
 
 def assert_no_approx_partials(system, include_self=True, recurse=True):
     """
-    Raises an assertion error if any component within system is found
-    to be using approximated partials.
+    Raise assertion error if any component within system is using approximated partials.
 
     Parameters
     ----------
@@ -98,8 +80,7 @@ def assert_no_approx_partials(system, include_self=True, recurse=True):
 
 def assert_no_dict_jacobians(system, include_self=True, recurse=True):
     """
-    Raises an assertion error if any Group within system is found to
-    be using dictionary jacobians
+    Raise an assertion error if any Group within system is found to be using dictionary jacobians.
 
     Parameters
     ----------

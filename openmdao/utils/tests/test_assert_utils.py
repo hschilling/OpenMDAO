@@ -43,10 +43,12 @@ class TestAssertUtils(unittest.TestCase):
         try:
             assert_check_partials(data, atol, rtol)
         except AssertionError as err:
-            self.assertTrue("error in partial of y wrt x1 in" in str(err))
+            expected_str = "error in partial of y wrt x1 in"
+            self.assertTrue(expected_str in str(err),
+                            msg="\n\nActual err msg:\n{} \n\ndoes not contain expected string:\n\n{}".format(str(err),
+                                                                                                     expected_str))
         else:
             self.fail('Exception expected.')
-
 
     def test_assert_no_approx_partials(self):
 
@@ -69,7 +71,7 @@ class TestAssertUtils(unittest.TestCase):
     cycle.d2
         of=*               wrt=*               method=cs
 '''
-            self.assertTrue(expected_err == str(err))
+            self.assertEqual(str(err), expected_err)
         else:
             self.fail('Exception expected.')
 
@@ -91,6 +93,6 @@ class TestAssertUtils(unittest.TestCase):
 '''The following groups use dictionary jacobians:
     
     cycle'''
-            self.assertTrue(expected_err == str(err))
+            self.assertEqual(str(err), expected_err)
         else:
             self.fail('Exception expected.')
