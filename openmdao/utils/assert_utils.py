@@ -1,5 +1,5 @@
 """
-Tools for making assertions about OpenMDAO Models.
+Functions for making assertions about OpenMDAO Systems.
 """
 import numpy as np
 
@@ -33,13 +33,13 @@ def assert_check_partials(data, atol=1e-6, rtol=1e-6):
     rtol : float
         relative error. Default is 1e-6.
     """
-    desired = 0.0
+    desired = (0.0,0.0,0.0)
     for comp in data:
         for (var, wrt) in data[comp]:
             for error_type, tolerance in [('abs error', atol), ('rel error', rtol), ]:
                 actual = data[comp][var, wrt][error_type]
                 if not np.isnan(actual).any():
-                    assert_allclose(actual, desired, tolerance,
+                    assert_allclose(actual, desired, atol = tolerance,
                                     err_msg='{0} error in partial of'
                                             ' {1} wrt {2} in component {3}'.format(error_type,
                                                                                    var, wrt, comp),
