@@ -141,7 +141,8 @@ class TestFeatureVisualization(unittest.TestCase):
 
     def test_partial_deriv_plot(self):
         import numpy as np
-        from openmdao.api import ExplicitComponent, Problem, Group, IndepVarComp
+        from openmdao.api import ExplicitComponent, Problem, Group, IndepVarComp, partial_deriv_plot
+
         class ArrayComp2D(ExplicitComponent):
             """
             A fairly simple array component with an intentional error in compute_partials.
@@ -169,9 +170,9 @@ class TestFeatureVisualization(unittest.TestCase):
                 """
                 # create some error to force the diff plot to show something
                 error = np.zeros((4, 4))
-                err = 1e-7
+                err = 1.0
                 error[0][3] = err
-                error[1][2] = - 2.0 * err
+                error[1][2] = - err
                 partials[('y1', 'x1')] = self.JJ + error
 
         prob = Problem()
@@ -186,7 +187,7 @@ class TestFeatureVisualization(unittest.TestCase):
 
     def test_partial_deriv_non_binary_plot(self):
         import numpy as np
-        from openmdao.api import ExplicitComponent, Problem, Group, IndepVarComp
+        from openmdao.api import ExplicitComponent, Problem, Group, IndepVarComp, partial_deriv_plot
         class ArrayComp2D(ExplicitComponent):
             """
             A fairly simple array component with an intentional error in compute_partials.
@@ -214,9 +215,9 @@ class TestFeatureVisualization(unittest.TestCase):
                 """
                 # create some error to force the diff plot to show something
                 error = np.zeros((4, 4))
-                err = 1e-7
+                err = 1.0
                 error[0][3] = err
-                error[1][2] = - 2.0 * err
+                error[1][2] = - err
                 partials[('y1', 'x1')] = self.JJ + error
 
         prob = Problem()
