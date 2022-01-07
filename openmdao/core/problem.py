@@ -72,6 +72,45 @@ CITATION = """@article{openmdao_2019,
     note= {In Press}
     }"""
 
+# Reports system
+
+reports_registry = []
+from collections import namedtuple
+
+Report = namedtuple('Report', 'probname reporting_object method pre_or_post func desc kwargs')
+
+def register_report(func, desc, method, pre_or_post, reporting_object, probname=None, **kwargs ):
+    global reports_registry
+    report = Report(probname, reporting_object, method, pre_or_post, func, desc, kwargs)
+    reports_registry.append(report)
+    return
+
+def setup_default_reports():
+    from openmdao.visualization.n2_viewer.n2_viewer import n2
+    register_report(n2, 'create n2', 'final_setup', 'post', 'problem', probname=None, show_browser=False)
+    from openmdao.visualization.scaling_viewer.scaling_report import view_driver_scaling
+    register_report(view_driver_scaling, 'view_driver_scaling', 'final_setup', 'post', 'driver', probname=None,
+                    show_browser=False)
+    from openmdao.utils.coloring import coloring_reporting
+    register_report(coloring_reporting, 'coloring_reporting', 'final_setup', 'post', 'problem', probname=None)
+
+
+# TODO Support env var of OPENMDAO_REPORTS with values of 0, false, off to disable all report generation
+import inspect
+import pathlib
+script_path = inspect.stack()[-1][1]
+script_name = pathlib.Path(script_path).stem
+reports_dir = f'{script_name}_reports'
+
+def set_reports_dir(reports_dir_path):
+    global reports_dir
+    reports_dir = reports_dir_path
+
+
+# setup_default_reports()
+
+def list_reports():
+    pass
 
 class Problem(object):
     """
@@ -1054,6 +1093,9 @@ class Problem(object):
             else:
                 logger = TestLogger()
             self.check_config(logger, checks=checks)
+
+        self.run_reports('final_setup', 'post')
+
 
     def check_partials(self, out_stream=_DEFAULT_OUT_STREAM, includes=None, excludes=None,
                        compact_print=False, abs_err_tol=1e-6, rel_err_tol=1e-6,
@@ -2122,6 +2164,33 @@ class Problem(object):
 
         self.model._set_complex_step_mode(active)
 
+    def run_reports(self, method, pre_or_post): # TODO can we use inspect to get method?
+
+        # need to get the report directory
+        if not os.path.isdir(reports_dir):
+            os.mkdir(reports_dir)
+
+        # loop through reports registry looking for matches
+        for report in reports_registry:
+            if report.probname and report.probname != self._name:
+                continue
+            if report.method != method:
+                continue
+            if report.pre_or_post == pre_or_post:
+                # TODO could use context mgr from here https://newbedev.com/how-can-i-change-directory-with-python-pathlib
+                # make the problem reports dir
+                problem_reports_dirname = self._name
+                problem_reports_dirpath = pathlib.Path(reports_dir).joinpath(problem_reports_dirname)
+                if not os.path.isdir(problem_reports_dirpath):
+                    os.mkdir(problem_reports_dirpath)
+                prev_cwd = pathlib.Path.cwd()
+                os.chdir(problem_reports_dirpath)
+                if report.reporting_object == 'problem':
+                    reporting_object = self
+                elif report.reporting_object == 'driver':
+                    reporting_object = self.driver
+                report.func(reporting_object, **report.kwargs)
+                os.chdir(prev_cwd)
 
 def _assemble_derivative_data(derivative_data, rel_error_tol, abs_error_tol, out_stream,
                               compact_print, system_list, global_options, totals=False,
