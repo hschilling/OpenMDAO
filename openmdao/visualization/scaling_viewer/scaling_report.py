@@ -225,6 +225,11 @@ def view_driver_scaling(driver, outfile='driver_scaling_report.html', show_brows
     obj_vals = driver.get_objective_values(driver_scaling=True)
     con_vals = driver.get_constraint_values(driver_scaling=True)
 
+    if len(dv_vals) == 0 or len(obj_vals) + len(con_vals) == 0:
+        print("To view a driver scaling report, your driver must define design variables along "
+              "with objective(s) and/or constraints.")
+        return
+
     mod_meta = driver._problem().model._var_allprocs_abs2meta['output']
 
     if driver._problem()._metadata['setup_status'] < _SetupStatus.POST_FINAL_SETUP:
