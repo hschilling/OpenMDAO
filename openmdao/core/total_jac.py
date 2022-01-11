@@ -194,6 +194,10 @@ class _TotalJacInfo(object):
                 of_name = name
             of.append(of_name)
 
+        if not of or not wrt:
+            raise RuntimeError("Can't compute total derivatives unless both 'of' or 'wrt' variables"
+                               " have been specified.")
+
         if not get_remote and self.comm.size > 1:
             self.remote_vois = frozenset(n for n in chain(of, wrt)
                                          if n not in model._var_abs2meta['output'])
