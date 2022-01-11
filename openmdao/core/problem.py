@@ -741,7 +741,7 @@ class Problem(object):
             Failure flag; True if failed to converge, False is successful.
         """
 
-        self.run_reports('run_driver', 'post')
+        self.run_reports('run_driver', 'pre')
 
         if self._mode is None:
             raise RuntimeError(self.msginfo +
