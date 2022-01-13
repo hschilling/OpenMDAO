@@ -21,9 +21,12 @@ def setup_default_reports():
     from openmdao.visualization.scaling_viewer.scaling_report import view_driver_scaling
     register_report(view_driver_scaling, 'view_driver_scaling', 'final_setup', 'post', 'driver', probname=None,
                     show_browser=False)
-    # from openmdao.utils.coloring import coloring_reporting
-    # register_report(coloring_reporting, 'coloring_reporting', 'final_setup', 'post', 'problem', probname=None)
+    from openmdao.utils.coloring import coloring_reporting
+    register_report(coloring_reporting, 'coloring_reporting', 'final_setup', 'post', 'problem', probname=None)
 
+    pass
+
+setup_default_reports()
 
 # TODO Support env var of OPENMDAO_REPORTS with values of 0, false, off to disable all report generation
 # import inspect
@@ -113,6 +116,7 @@ import os
 
 def run_reports(prob, method, pre_or_post): # TODO can we use inspect to get method?
     global reports_dir
+    global reports_registry
 
     if 'OPENMDAO_REPORTS' in os.environ and os.environ['OPENMDAO_REPORTS'] in ['0', 'false', 'off']:
         return
@@ -144,5 +148,17 @@ def run_reports(prob, method, pre_or_post): # TODO can we use inspect to get met
                 reporting_object = prob.driver
             else:
                 raise ValueError(f"Invalid reporting object {report.reporting_object}.")
-            report.func(reporting_object, **report.kwargs)
+
+            # report.func(reporting_object, **report.kwargs)
+            try:
+                report.func(reporting_object, **report.kwargs)
+            # Need to handle the coloring and scaling reports which can fail in this way
+            #   because total Jacobian can't be computed
+            except RuntimeError as err:
+                if str(err) != "Can't compute total derivatives unless both 'of' or 'wrt' variables have been specified.":
+                    raise err
             os.chdir(prev_cwd)
+
+def clear_reports():
+    global reports_registry
+    reports_registry = []
