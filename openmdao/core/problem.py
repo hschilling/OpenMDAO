@@ -112,8 +112,8 @@ CITATION = """@article{openmdao_2019,
 # def list_reports():
 #     pass
 
-from openmdao.utils.reports import setup_default_reports, register_report, reports_dir, reports_registry
-import pathlib
+# from openmdao.utils.reports import setup_default_reports, register_report, reports_dir, reports_registry
+# import pathlib
 
 class Problem(object):
     """
