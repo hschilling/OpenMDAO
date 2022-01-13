@@ -2454,7 +2454,5 @@ class _ColSparsityJac(object):
 
 
 def coloring_reporting(prob):
-    coloring = compute_total_coloring(prob,
-                                      use_abs_names=True
-                                      )
+    coloring = compute_total_coloring(prob, use_abs_names=True )
     coloring.display(show=False)
