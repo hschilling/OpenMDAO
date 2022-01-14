@@ -5,10 +5,12 @@ Utilities for working with files.
 import sys
 import os
 import importlib
-import unittest
-from inspect import getmembers, isclass, ismethod, isfunction
+# import unittest
+# from inspect import getmembers, isclass, ismethod, isfunction
 from fnmatch import fnmatch
 from os.path import join, basename, dirname, isfile, split, splitext, abspath, expanduser
+import contextlib
+import pathlib
 
 
 def get_module_path(fpath):
@@ -252,3 +254,25 @@ def _run_test_func(mod, funcpath):
     else:
         funcname = parts[0]
         return getattr(mod, funcname)()
+
+
+@contextlib.contextmanager
+def working_directory(path):
+    """
+    Change working directory and returns to previous directory on exit.
+
+    Parameters
+    ----------
+    path : str
+        The path to the new directory.
+
+    Yields
+    ------
+    None
+    """
+    prev_cwd = pathlib.Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
