@@ -698,8 +698,7 @@ class Problem(object):
         bool
             Failure flag; True if failed to converge, False is successful.
         """
-
-        self.run_reports('run_driver', 'pre')
+        self._run_reports('run_driver', 'pre')
 
         if self._mode is None:
             raise RuntimeError(self.msginfo +
@@ -723,7 +722,7 @@ class Problem(object):
 
         self.model._clear_iprint()
 
-        self.run_reports('run_driver', 'post')
+        self._run_reports('run_driver', 'post')
 
         return self.driver.run()
 
@@ -926,7 +925,7 @@ class Problem(object):
         <Problem>
             This enables the user to instantiate and setup in one line.
         """
-        self.run_reports('setup', 'pre')
+        self._run_reports('setup', 'pre')
 
         model = self.model
         comm = self.comm
@@ -987,7 +986,7 @@ class Problem(object):
 
         self._metadata['setup_status'] = _SetupStatus.POST_SETUP
 
-        self.run_reports('setup', 'post')
+        self._run_reports('setup', 'post')
 
         return self
 
@@ -1001,7 +1000,7 @@ class Problem(object):
         are created and populated, the drivers and solvers are initialized, and the recorders are
         started, and the rest of the framework is prepared for execution.
         """
-        self.run_reports('final_setup', 'pre')
+        self._run_reports('final_setup', 'pre')
 
         driver = self.driver
 
@@ -1067,8 +1066,7 @@ class Problem(object):
                 logger = TestLogger()
             self.check_config(logger, checks=checks)
 
-        self.run_reports('final_setup', 'post')
-
+        self._run_reports('final_setup', 'post')
 
     def check_partials(self, out_stream=_DEFAULT_OUT_STREAM, includes=None, excludes=None,
                        compact_print=False, abs_err_tol=1e-6, rel_err_tol=1e-6,
@@ -2137,11 +2135,12 @@ class Problem(object):
 
         self.model._set_complex_step_mode(active)
 
-    def run_reports(self, method, pre_or_post): # TODO can we use inspect to get method?
+    def _run_reports(self, method, pre_or_post):  # TODO can we use inspect to get method?
         # to avoid circular import issues
         from openmdao.utils.reports import run_reports
 
         run_reports(self, method, pre_or_post)
+
 
 def _assemble_derivative_data(derivative_data, rel_error_tol, abs_error_tol, out_stream,
                               compact_print, system_list, global_options, totals=False,
