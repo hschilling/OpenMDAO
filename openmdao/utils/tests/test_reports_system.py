@@ -9,7 +9,7 @@ import openmdao.api as om
 from openmdao.test_suite.components.paraboloid import Paraboloid
 import openmdao.core.problem
 from openmdao.utils.reports import setup_default_reports, clear_reports, set_reports_dir, \
-    register_report, list_reports, _reports_dir
+    register_report, list_reports, _reports_dir, clear_reports_run
 from openmdao.visualization.n2_viewer.n2_viewer import n2
 from openmdao.utils.testing_utils import use_tempdirs
 
@@ -32,6 +32,7 @@ class TestReportGeneration(unittest.TestCase):
         # But we need to remember whether it was set so we can restore it
         self.testflo_running = os.environ.pop('TESTFLO_RUNNING', None)
         clear_reports()
+        clear_reports_run()
         set_reports_dir('.')
         setup_default_reports()
 
