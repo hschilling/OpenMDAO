@@ -6,27 +6,49 @@ from collections import namedtuple
 import pathlib
 import sys
 import os
-import contextlib
-from pathlib import Path
 
+from openmdao.visualization.n2_viewer.n2_viewer import n2
+from openmdao.utils.coloring import compute_total_coloring
+from openmdao.utils.file_utils import working_directory
 
-from openmdao.visualization.scaling_viewer.scaling_report import view_driver_scaling
-
-Report = namedtuple('Report', 'probname method pre_or_post func desc kwargs')
+_Report = namedtuple('Report', 'func desc method pre_or_post probname kwargs')
 
 _reports_registry = []
 _reports_dir = '.'  # the default location for the reports
 
+_Reports_Run = namedtuple('_Reports_Run', 'probname method pre_or_post' )
+_reports_run = []
 
 def register_report(func, desc, method, pre_or_post, probname=None, **kwargs):
+    """
+    Register a report with the reporting system.
+
+    Parameters
+    ----------
+    func : function
+        A function to do the reporting. Expects the first argument to be a Problem instance.
+    desc : str
+        A description of the report.
+    method : str
+        In which method of the Problem should this be run.
+    pre_or_post : str
+        Valid values are 'pre' and 'post'. Indicates when to run the report in the method.
+    probname : str or None
+        Either the name of a Problem or None. If None, then this report will be run for all
+        Problems.
+    **kwargs : dict
+        Optional args for the reporting function.
+    """
     global _reports_registry
-    report = Report(probname, method, pre_or_post, func, desc, kwargs)
+    report = _Report(func, desc, method, pre_or_post, probname, kwargs)
     _reports_registry.append(report)
     return
 
 
-def view_driver_scaling_for_report(prob, **kwargs):
+def run_scaling_report(prob, **kwargs):
     """
+    Run the scaling report.
+
     Created for the reporting system, which expects the reporting functions to have Problem as
     their first argument.
 
@@ -35,43 +57,60 @@ def view_driver_scaling_for_report(prob, **kwargs):
     prob : Problem
         The problem used for the scaling report.
     **kwargs : dict
-        Keyword args.
-
-    Returns
-    -------
-    dict
-        Data to used to generate html file.
+        Optional args for the scaling report function.
     """
-    return view_driver_scaling(prob.driver, **kwargs)
+    prob.driver.scaling_report(**kwargs)
+
+
+def run_coloring_report(prob, **kwargs):
+    """
+    Run the coloring report.
+
+    Created for the reporting system, which expects the reporting functions to have Problem as
+    their first argument.
+
+    Parameters
+    ----------
+    prob : Problem
+        The problem used for the coloring report.
+    **kwargs : dict
+        Optional args for the coloring report function.
+    """
+    coloring = compute_total_coloring(prob, **kwargs)
+    coloring.display(show=False)
 
 
 def setup_default_reports():
-    from openmdao.visualization.n2_viewer.n2_viewer import n2
-    register_report(n2, 'create n2', 'final_setup', 'post', probname=None, show_browser=False)
-    register_report(view_driver_scaling_for_report, 'view_driver_scaling', 'final_setup', 'post',
-                    probname=None,
-                    show_browser=False)
-    from openmdao.utils.coloring import coloring_reporting
-    register_report(coloring_reporting, 'coloring_reporting', 'final_setup', 'post', probname=None)
-
-
-setup_default_reports()
-
+    """
+    Set up the default reports for all OpenMDAO runs.
+    """
+    # register_report(n2, 'N2 diagram', 'final_setup', 'post', probname=None, show_browser=False)
+    # register_report(run_scaling_report, 'Driver scaling report', 'final_setup', 'post',
+    #                 probname=None, show_browser=False)
+    register_report(run_coloring_report, 'Coloring report', 'final_setup', 'post', probname=None)
+    pass
 
 def set_reports_dir(reports_dir_path):
+    """
+    Set the path to where the reports should go. Normally, they go into the current directory.
+
+    Parameters
+    ----------
+    reports_dir_path : str
+        Path to where the report directories should go.
+    """
     global _reports_dir
     _reports_dir = reports_dir_path
 
 
 def list_reports(out_stream=None):
     """
-    Write table of variable names, values, residuals, and metadata to out_stream.
+    Write table of information about reports currently registered in the reporting system.
 
     Parameters
     ----------
     out_stream : file-like object
-        Where to send human readable output.
-        Set to None to suppress.
+        Where to send report info.
     """
     global _reports_registry
 
@@ -123,31 +162,47 @@ def list_reports(out_stream=None):
     out_stream.write('\n')
 
 
-@contextlib.contextmanager
-def working_directory(path):
-    """Changes working directory and returns to previous on exit."""
-    prev_cwd = Path.cwd()
-    os.chdir(path)
-    try:
-        yield
-    finally:
-        os.chdir(prev_cwd)
-
-
 def run_reports(prob, method, pre_or_post):
+    """
+    Run all the registered reports.
+
+    It takes into account the specifics of when and if
+    they should be run at this point. This function is called from various methods of
+    Problem.
+
+    Parameters
+    ----------
+    prob : Problem
+        OpenMDAO Problem instance.
+    method : str
+        Name of the method in Problem that this is called from.
+    pre_or_post : str
+        Where in the Problem method that this was called from. Only valid values are 'pre' and
+        'post'.
+    """
     global _reports_dir
     global _reports_registry
+
+    # Keep track of what was run so we don't do it again. Prevents issues with recursion
+    report_run = _Reports_Run(prob._name, method, pre_or_post)
+    if report_run in _reports_run:
+        return
+    _reports_run.append(report_run)
 
     # No running of reports when running under testflo
     if 'TESTFLO_RUNNING' in os.environ:
         return
 
+    # The user can define OPENMDAO_REPORTS to turn off reporting
     if 'OPENMDAO_REPORTS' in os.environ and os.environ['OPENMDAO_REPORTS'] in ['0', 'false', 'off']:
         return
 
+    # The user can define where to put the reports using an environment variables
     reports_dir = os.environ.get('OPENMDAO_REPORTS_DIR', _reports_dir)
 
-    # need to get the report directory
+    # need to make the report directory if needed
+    if os.path.isfile(reports_dir):
+        raise RuntimeError(f"{_reports_dir} cannot be a reports directory because it is a file.")
     if not os.path.isdir(reports_dir):
         os.mkdir(reports_dir)
 
@@ -164,17 +219,52 @@ def run_reports(prob, method, pre_or_post):
             if not os.path.isdir(problem_reports_dirpath):
                 os.mkdir(problem_reports_dirpath)
 
-            with working_directory(problem_reports_dirpath):
-                try:
-                    report.func(prob, **report.kwargs)
-                # Need to handle the coloring and scaling reports which can fail in this way
-                #   because total Jacobian can't be computed
-                except RuntimeError as err:
-                    if str(err) != "Can't compute total derivatives unless " \
+            # with working_directory(problem_reports_dirpath):
+            #     try:
+            #         report.func(prob, **report.kwargs)
+            #     # Need to handle the coloring and scaling reports which can fail in this way
+            #     #   because total Jacobian can't be computed
+            #     except RuntimeError as err:
+            #         if str(err) != "Can't compute total derivatives unless " \
+            #                        "both 'of' or 'wrt' variables have been specified.":
+            #             raise err
+            #
+            # try:
+            #     with working_directory(problem_reports_dirpath):
+            #         report.func(prob, **report.kwargs)
+            # # Need to handle the coloring and scaling reports which can fail in this way
+            # #   because total Jacobian can't be computed
+            # except RuntimeError as err:
+            #     if str(err) != "Can't compute total derivatives unless " \
+            #                        "both 'of' or 'wrt' variables have been specified.":
+            #         raise err
+
+            current_cwd = pathlib.Path.cwd()
+            os.chdir(problem_reports_dirpath)
+            try:
+                report.func(prob, **report.kwargs)
+            # Need to handle the coloring and scaling reports which can fail in this way
+            #   because total Jacobian can't be computed
+            except RuntimeError as err:
+                if str(err) != "Can't compute total derivatives unless " \
                                    "both 'of' or 'wrt' variables have been specified.":
-                        raise err
+                    raise err
+            finally:
+                os.chdir(current_cwd)
 
 
 def clear_reports():
+    """
+    Clear all of the reports from the registry.
+    """
     global _reports_registry
     _reports_registry = []
+
+def clear_reports_run():
+    global _reports_run
+    _reports_run = []
+
+# When running under testflo, we don't want to waste time generating the reports and also
+#   cluttering up the file system with reports
+if 'TESTFLO_RUNNING' not in os.environ:
+    setup_default_reports()
