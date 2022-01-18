@@ -686,7 +686,7 @@ class Coloring(object):
             raise RuntimeError("Internal coloring bug: jacobian has entries where fwd and rev "
                                "colorings overlap!")
 
-    def display(self,show=True,fname='jacobian_to_compute_coloring.png'):
+    def display(self, show=True, fname='jacobian_to_compute_coloring.png'):
         """
         Display a plot of the sparsity pattern, showing grouping by color.
 
@@ -854,7 +854,6 @@ class Coloring(object):
             pyplot.show()
         else:
             pyplot.savefig(fname)
-
 
     def get_dense_sparsity(self, dtype=bool):
         """
@@ -2451,8 +2450,3 @@ class _ColSparsityJac(object):
             }
 
         return coo_matrix((data, (rows, cols)), shape=(self._nrows, self._ncols)), info
-
-
-def coloring_reporting(prob):
-    coloring = compute_total_coloring(prob, use_abs_names=True )
-    coloring.display(show=False)
