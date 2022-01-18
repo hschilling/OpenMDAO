@@ -85,9 +85,9 @@ def setup_default_reports():
     Set up the default reports for all OpenMDAO runs.
     """
     # register_report(n2, 'N2 diagram', 'final_setup', 'post', probname=None, show_browser=False)
-    # register_report(run_scaling_report, 'Driver scaling report', 'final_setup', 'post',
-    #                 probname=None, show_browser=False)
-    register_report(run_coloring_report, 'Coloring report', 'final_setup', 'post', probname=None)
+    register_report(run_scaling_report, 'Driver scaling report', 'final_setup', 'post',
+                    probname=None, show_browser=False)
+    # register_report(run_coloring_report, 'Coloring report', 'final_setup', 'post', probname=None)
     pass
 
 def set_reports_dir(reports_dir_path):
