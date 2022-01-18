@@ -646,7 +646,7 @@ class Problem(object):
         # Clean up cache
         self._initial_condition_cache = OrderedDict()
 
-    def run_model(self, case_prefix=None, reset_iter_counts=True):
+    def run_model(self, case_prefix=None, reset_iter_counts=True, reports=True):
         """
         Run the model by calling the root system's solve_nonlinear.
 
@@ -657,6 +657,9 @@ class Problem(object):
 
         reset_iter_counts : bool
             If True and model has been run previously, reset all iteration counters.
+
+        reports : bool
+            If True, do not call the methods to generate reports.
         """
         if self._mode is None:
             raise RuntimeError(self.msginfo +
@@ -673,7 +676,7 @@ class Problem(object):
             self.driver.iter_count = 0
             self.model._reset_iter_counts()
 
-        self.final_setup()
+        self.final_setup(reports=reports)
 
         self._run_counter += 1
         record_model_options(self, self._run_counter)
@@ -681,7 +684,7 @@ class Problem(object):
         self.model._clear_iprint()
         self.model.run_solve_nonlinear()
 
-    def run_driver(self, case_prefix=None, reset_iter_counts=True):
+    def run_driver(self, case_prefix=None, reset_iter_counts=True, reports=True):
         """
         Run the driver on the model.
 
@@ -693,12 +696,16 @@ class Problem(object):
         reset_iter_counts : bool
             If True and model has been run previously, reset all iteration counters.
 
+        reports : bool
+            If True, do not call the methods to generate reports.
+
         Returns
         -------
         bool
             Failure flag; True if failed to converge, False is successful.
         """
-        self._run_reports('run_driver', 'pre')
+        if reports:
+            self._run_reports('run_driver', 'pre')
 
         if self._mode is None:
             raise RuntimeError(self.msginfo +
@@ -715,16 +722,19 @@ class Problem(object):
             self.driver.iter_count = 0
             self.model._reset_iter_counts()
 
-        self.final_setup()
+        self.final_setup(reports=reports)
 
         self._run_counter += 1
         record_model_options(self, self._run_counter)
 
         self.model._clear_iprint()
 
-        self._run_reports('run_driver', 'post')
+        run_result = self.driver.run()
 
-        return self.driver.run()
+        if reports:
+            self._run_reports('run_driver', 'post')
+
+        return run_result
 
     def compute_jacvec_product(self, of, wrt, mode, seed):
         """
@@ -990,7 +1000,7 @@ class Problem(object):
 
         return self
 
-    def final_setup(self):
+    def final_setup(self,reports=True):
         """
         Perform final setup phase on problem in preparation for run.
 
@@ -999,8 +1009,14 @@ class Problem(object):
         variables, solvers, case_recorders, and derivative settings. During this phase, the vectors
         are created and populated, the drivers and solvers are initialized, and the recorders are
         started, and the rest of the framework is prepared for execution.
+
+        Parameters
+        ----------
+        reports : bool
+            If True, do not call the methods to generate reports.
         """
-        self._run_reports('final_setup', 'pre')
+        if reports:
+            self._run_reports('final_setup', 'pre')
 
         driver = self.driver
 
@@ -1066,7 +1082,8 @@ class Problem(object):
                 logger = TestLogger()
             self.check_config(logger, checks=checks)
 
-        self._run_reports('final_setup', 'post')
+        if reports:
+            self._run_reports('final_setup', 'post')
 
     def check_partials(self, out_stream=_DEFAULT_OUT_STREAM, includes=None, excludes=None,
                        compact_print=False, abs_err_tol=1e-6, rel_err_tol=1e-6,

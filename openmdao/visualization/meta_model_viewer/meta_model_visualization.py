@@ -395,7 +395,7 @@ class MetaModelVisualization(object):
             for idx, tup in enumerate(inputs):
                 for name, val in zip(data.keys(), tup):
                     self.prob[self.meta_model.name + '.' + name] = val
-                self.prob.run_model()
+                self.prob.run_model(reports=False)
                 for title in self.output_names:
                     outputs[title].append(
                         float(self.prob[self.meta_model.name + '.' + title]))
