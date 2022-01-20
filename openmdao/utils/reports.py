@@ -1,15 +1,15 @@
 """
 Utility functions related to the reporting system which generates reports by default for all runs.
 """
+from mpi4py import MPI
 
 from collections import namedtuple
 import pathlib
 import sys
 import os
 
-from openmdao.visualization.n2_viewer.n2_viewer import n2
 from openmdao.utils.coloring import compute_total_coloring
-from openmdao.utils.file_utils import working_directory
+from openmdao.utils.mpi import MPI
 
 _Report = namedtuple('Report', 'func desc method pre_or_post probname kwargs')
 
@@ -84,7 +84,10 @@ def setup_default_reports():
     """
     Set up the default reports for all OpenMDAO runs.
     """
-    # register_report(n2, 'N2 diagram', 'final_setup', 'post', probname=None, show_browser=False)
+    # with open(f"rank_{MPI.COMM_WORLD.rank}.log", "a") as f:
+    #     f.write("setup_default_reports\n")
+    from openmdao.visualization.n2_viewer.n2_viewer import n2
+    # register_report(n2, 'N2 diagram', 'final_setup', 'post', probname=None, show_browser=False, display_in_notebook=False)
     register_report(run_scaling_report, 'Driver scaling report', 'final_setup', 'post',
                     probname=None, show_browser=False)
     # register_report(run_coloring_report, 'Coloring report', 'final_setup', 'post', probname=None)
@@ -183,6 +186,13 @@ def run_reports(prob, method, pre_or_post):
     global _reports_dir
     global _reports_registry
 
+    # If MPI, only save reports on rank 0
+    on_rank0 = True
+    if MPI:
+        rank = prob.comm.rank
+        if rank != 0:
+            on_rank0 = False
+
     # Keep track of what was run so we don't do it again. Prevents issues with recursion
     report_run = _Reports_Run(prob._name, method, pre_or_post)
     if report_run in _reports_run:
@@ -200,12 +210,6 @@ def run_reports(prob, method, pre_or_post):
     # The user can define where to put the reports using an environment variables
     reports_dir = os.environ.get('OPENMDAO_REPORTS_DIR', _reports_dir)
 
-    # need to make the report directory if needed
-    if os.path.isfile(reports_dir):
-        raise RuntimeError(f"{_reports_dir} cannot be a reports directory because it is a file.")
-    if not os.path.isdir(reports_dir):
-        os.mkdir(reports_dir)
-
     # loop through reports registry looking for matches
     for report in _reports_registry:
         if report.probname and report.probname != prob._name:
@@ -216,31 +220,16 @@ def run_reports(prob, method, pre_or_post):
             # make the problem reports dir
             problem_reports_dirname = f'{prob._name}_reports'
             problem_reports_dirpath = pathlib.Path(reports_dir).joinpath(problem_reports_dirname)
-            if not os.path.isdir(problem_reports_dirpath):
-                os.mkdir(problem_reports_dirpath)
 
-            # with working_directory(problem_reports_dirpath):
-            #     try:
-            #         report.func(prob, **report.kwargs)
-            #     # Need to handle the coloring and scaling reports which can fail in this way
-            #     #   because total Jacobian can't be computed
-            #     except RuntimeError as err:
-            #         if str(err) != "Can't compute total derivatives unless " \
-            #                        "both 'of' or 'wrt' variables have been specified.":
-            #             raise err
-            #
-            # try:
-            #     with working_directory(problem_reports_dirpath):
-            #         report.func(prob, **report.kwargs)
-            # # Need to handle the coloring and scaling reports which can fail in this way
-            # #   because total Jacobian can't be computed
-            # except RuntimeError as err:
-            #     if str(err) != "Can't compute total derivatives unless " \
-            #                        "both 'of' or 'wrt' variables have been specified.":
-            #         raise err
+            if on_rank0:
+                # if not os.path.isdir(problem_reports_dirpath):
+                #     os.mkdir(problem_reports_dirpath)
+                #
+                pathlib.Path(problem_reports_dirpath).mkdir(parents=True, exist_ok=True)
 
             current_cwd = pathlib.Path.cwd()
             os.chdir(problem_reports_dirpath)
+
             try:
                 report.func(prob, **report.kwargs)
             # Need to handle the coloring and scaling reports which can fail in this way
@@ -264,7 +253,7 @@ def clear_reports_run():
     global _reports_run
     _reports_run = []
 
-# When running under testflo, we don't want to waste time generating the reports and also
-#   cluttering up the file system with reports
+
 if 'TESTFLO_RUNNING' not in os.environ:
     setup_default_reports()
+
