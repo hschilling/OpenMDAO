@@ -12,6 +12,12 @@ from openmdao.utils.reports import setup_default_reports, clear_reports, set_rep
     register_report, list_reports, _reports_dir, clear_reports_run
 from openmdao.visualization.n2_viewer.n2_viewer import n2
 from openmdao.utils.testing_utils import use_tempdirs
+from openmdao.utils.mpi import MPI
+
+try:
+    from openmdao.vectors.petsc_vector import PETScVector
+except ImportError:
+    PETScVector = None
 
 
 @use_tempdirs
@@ -120,9 +126,9 @@ class TestReportGeneration(unittest.TestCase):
 
         output = strout.getvalue()
 
-        self.assertTrue('N2 diagram' in output)
-        self.assertTrue('Driver scaling report' in output)
-        self.assertTrue('Coloring report' in output)
+        self.assertTrue('N2 diagram' in output, '"N2 diagram" expected in list_reports output but was not found')
+        self.assertTrue('Driver scaling report' in output, '"Driver scaling report" expected in list_reports output but was not found')
+        self.assertTrue('Coloring report' in output, '"Coloring report" expected in list_reports output but was not found')
 
     def test_report_generation_no_reports(self):
         os.environ['OPENMDAO_REPORTS'] = 'false'
@@ -253,6 +259,14 @@ class TestReportGeneration(unittest.TestCase):
         path = pathlib.Path(problem_reports_dir).joinpath(self.coloring_filename)
         self.assertFalse(path.is_file(),
                          f'The coloring report file, {str(path)}, was found but should not have')
+
+
+    # @unittest.skipUnless(MPI and PETScVector, "MPI and PETSc are required.")
+    # def test_reports_system_under_mpi(self):
+    #
+    #     # TODO Need an MPI test!
+
+
 
 
 if __name__ == '__main__':
