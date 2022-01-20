@@ -528,7 +528,7 @@ def _get_viewer_data(data_source, case_id=None):
 
 
 def n2(data_source, outfile='n2.html', case_id=None, show_browser=True, embeddable=False,
-       title=None, use_declare_partial_info=False):
+       title=None, use_declare_partial_info=False, display_in_notebook=True):
     """
     Generate an HTML file containing a tree viewer.
 
@@ -553,6 +553,9 @@ def n2(data_source, outfile='n2.html', case_id=None, show_browser=True, embeddab
     use_declare_partial_info : ignored
         This option is no longer used because it is now always true.
         Still present for backwards compatibility.
+    display_in_notebook : bool, optional
+        If True, display the N2 diagram in the notebook, if this is called from a notebook.
+        Defaults to True.
     """
     # grab the model viewer data
     model_data = _get_viewer_data(data_source, case_id=case_id)
@@ -668,12 +671,13 @@ def n2(data_source, outfile='n2.html', case_id=None, show_browser=True, embeddab
     h.write(outfile)
 
     if notebook:
-        # display in Jupyter Notebook
-        outfile = os.path.relpath(outfile)
-        if not colab:
-            display(IFrame(src=outfile, width="100%", height=700))
-        else:
-            display(HTML(outfile))
+        if display_in_notebook:
+            # display in Jupyter Notebook
+            outfile = os.path.relpath(outfile)
+            if not colab:
+                display(IFrame(src=outfile, width="100%", height=700))
+            else:
+                display(HTML(outfile))
     elif show_browser:
         # open it up in the browser
         from openmdao.utils.webview import webview
