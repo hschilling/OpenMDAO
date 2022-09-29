@@ -682,6 +682,38 @@ class System(object):
         """
         pass
 
+    def set_output_solver_options(self, name=None, lower=None, upper=None,
+                              ref=None, ref0=None, res_ref=None):
+        from openmdao.utils.general_utils import ensure_compatible
+
+        # Need to find output based on the output path aka name, relative to this
+        #  System or Component
+
+        # Need to get the shape value
+
+
+        vars =  self._var_abs2meta['output']
+
+        metadatadict = vars[name]
+        shape = metadatadict['shape']
+        # self here is System/Component
+
+        if lower is not None:
+            lower = ensure_compatible(name, lower, shape)[0]
+            self._has_bounds = True
+        if upper is not None:
+            upper = ensure_compatible(name, upper, shape)[0]
+            self._has_bounds = True
+
+        # get current metadata for this output
+        # metadata = _MetadataDict()
+
+        metadatadict.update({
+            'lower': lower,
+            'upper': upper,
+        })
+
+
     def initialize(self):
         """
         Perform any one-time initialization run at instantiation.
