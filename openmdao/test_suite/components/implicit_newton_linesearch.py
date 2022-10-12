@@ -1,48 +1,7 @@
 """Components used mainly for testing Newton and line searches."""
-from math import exp
-
 import numpy as np
-import unittest
 
 import openmdao.api as om
-
-
-class ImplCompOneState(om.ImplicitComponent):
-    """
-    A Simple Implicit Component
-
-    R(x,y) = 0.5y^2 + 2y + exp(-16y^2) + 2exp(-5y) - x
-
-    Solution:
-    x = 1.2278849186466743
-    y = 0.3968459
-    """
-
-    def setup(self):
-        self.add_input('x', 1.2278849186466743)
-        self.add_output('y', val=1.0)
-
-    def setup_partials(self):
-        self.declare_partials(of='*', wrt='*')
-
-    def apply_nonlinear(self, inputs, outputs, resids):
-        """
-        Don't solve; just calculate the residual.
-        """
-        x = inputs['x']
-        y = outputs['y']
-
-        resids['y'] = 0.5*y*y + 2.0*y + exp(-16.0*y*y) + 2.0*exp(-5.0*y) - x
-
-    def linearize(self, inputs, outputs, J):
-        """
-        Analytical derivatives.
-        """
-        y = outputs['y']
-
-        # State equation
-        J[('y', 'x')] = -1.0
-        J[('y', 'y')] = y + 2.0 - 32.0*y*exp(-16.0*y*y) - 10.0*exp(-5.0*y)
 
 
 class ImplCompTwoStates(om.ImplicitComponent):
@@ -68,6 +27,7 @@ class ImplCompTwoStates(om.ImplicitComponent):
         self.add_input('x', 0.5)
         self.add_output('y', 0.0)
         self.add_output('z', 2.0, lower=1.5, upper=2.5)
+        # self.add_output('z', 2.0)
 
         self.maxiter = 10
         self.atol = 1.0e-12
