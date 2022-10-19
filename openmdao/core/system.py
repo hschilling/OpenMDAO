@@ -789,10 +789,11 @@ class System(object):
             metadatadict_allprocs_abs2meta = allprocs_abs2meta[abs_name]
 
             for meta_key in ['ref', 'ref0', 'res_ref', 'lower', 'upper']:
-                if meta_key in options and options[meta_key] is not None:
-                    if meta_key in ['lower', 'upper']:
-                        self._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
-                        subsys._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
+                # if meta_key in options and options[meta_key] is not None:
+                if meta_key in options:
+                    # if meta_key in ['lower', 'upper']:
+                    #     self._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
+                    #     subsys._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
 
                     if meta_key == 'ref':
                         ref = options['ref']
@@ -825,18 +826,27 @@ class System(object):
                             self._has_resid_scaling |= np.any(res_ref != 1.0)
                             subsys._has_resid_scaling |= np.any(res_ref != 1.0)
 
-                    shape = metadatadict_abs2meta['shape']
-                    val = ensure_compatible(name, options[meta_key], shape)[0]
-                    val_as_float_or_array = format_as_float_or_array(meta_key, val, flatten=True)
+                    if options[meta_key] is None:
+                        val_as_float_or_array_or_none = None
+                    else:
+                        shape = metadatadict_abs2meta['shape']
+                        val = ensure_compatible(name, options[meta_key], shape)[0]
+                        val_as_float_or_array_or_none = format_as_float_or_array(meta_key, val, flatten=True)
 
                     # Setting both here because the copying of _var_abs2meta to _var_allprocs_abs2meta
                     #   happens before this. Need to keep both up to date
                     metadatadict_abs2meta.update({
-                        meta_key: val_as_float_or_array,
+                        meta_key: val_as_float_or_array_or_none,
                     })
                     metadatadict_allprocs_abs2meta.update({
-                        meta_key: val_as_float_or_array,
+                        meta_key: val_as_float_or_array_or_none,
                     })
+
+
+            if metadatadict_abs2meta['lower'] is not None or metadatadict_abs2meta['upper'] is not None:
+                subsys._has_bounds = True
+            else:
+                subsys._has_bounds = False
 
 
                 # ALSO have to do similar things for _has_scaling for ref, ...
@@ -1019,6 +1029,12 @@ class System(object):
         #     s._apply_output_solver_options()
 
         # have to do this again because we are passed the point in _setup_var_data when this happens
+
+        self._has_output_scaling = False
+        self._has_output_adder  = False
+        self._has_resid_scaling  = False
+        self._has_bounds  = False
+
         for subsys in self._subsystems_myproc:
             subsys._apply_output_solver_options()
 
