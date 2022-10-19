@@ -14,6 +14,41 @@ from openmdao.utils.assert_utils import assert_near_equal, assert_warning
 from openmdao.utils.om_warnings import OMDeprecationWarning
 
 
+class ScalingExample3(ImplicitComponent):
+
+    def setup(self):
+        self.add_input('x1', val=100.0)
+        self.add_input('x2', val=5000.0)
+        self.add_output('y1', val=200., ref=1e2, res_ref=1e5)
+        self.add_output('y2', val=6000., ref=1e3, res_ref=1e-5)
+
+    def apply_nonlinear(self, inputs, outputs, residuals):
+        x1 = inputs['x1']
+        x2 = inputs['x2']
+        y1 = outputs['y1']
+        y2 = outputs['y2']
+
+        residuals['y1'] = 1e5 * (x1 - y1) / y1
+        residuals['y2'] = 1e-5 * (x2 - y2) / y2
+
+class ScalingExample3NoMeta(ImplicitComponent):
+
+    def setup(self):
+        self.add_input('x1', val=100.0)
+        self.add_input('x2', val=5000.0)
+        self.add_output('y1', val=200.)
+        self.add_output('y2', val=6000.)
+
+    def apply_nonlinear(self, inputs, outputs, residuals):
+        x1 = inputs['x1']
+        x2 = inputs['x2']
+        y1 = outputs['y1']
+        y2 = outputs['y2']
+
+        residuals['y1'] = 1e5 * (x1 - y1) / y1
+        residuals['y2'] = 1e-5 * (x2 - y2) / y2
+
+
 class TestSystem(unittest.TestCase):
 
     def test_vector_context_managers(self):
@@ -391,80 +426,155 @@ class TestSystem(unittest.TestCase):
         with assert_warning(UserWarning, msg):
             prob.model.list_inputs(units=True, prom_name=True)
 
-
-
-
-
-    def test_set_output_solver_options(self):
-        top = Problem()
-        top.model.add_subsystem('px', IndepVarComp('x', 1.0))
-        top.model.add_subsystem('comp', ImplCompTwoStates())
-        top.model.connect('px.x', 'comp.x')
-
-        top.model.nonlinear_solver = BroydenSolver()
-        top.model.nonlinear_solver.options['maxiter'] = 25
-        top.model.nonlinear_solver.options['diverge_limit'] = 0.5
-        top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
-
-        top.model.linear_solver = DirectSolver()
-
-        top.setup()
-
-        top.set_solver_print(level=2)
-        # Test lower bound: should go to the lower bound and stall
-        top['px.x'] = 2.0
-        top['comp.y'] = 0.0
-        top['comp.z'] = 1.6
-        top.run_model()
-        assert_near_equal(top['comp.z'], 1.5, 1e-8)
-
-        # Test upper bound: should go to the upper bound and stall
-        top['px.x'] = 0.5
-        top['comp.y'] = 0.0
-        top['comp.z'] = 2.4
-        top.run_model()
-        assert_near_equal(top['comp.z'], 2.5, 1e-8)
-
-
-        #
-        top = Problem()
-        top.model.add_subsystem('px', IndepVarComp('x', 1.0))
-        top.model.add_subsystem('comp', ImplCompTwoStatesNoMeta())
-        top.model.connect('px.x', 'comp.x')
-
-        top.model.nonlinear_solver = BroydenSolver()
-        top.model.nonlinear_solver.options['maxiter'] = 25
-        top.model.nonlinear_solver.options['diverge_limit'] = 0.5
-        top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
-
-        top.model.linear_solver = DirectSolver()
-
-        top.setup()
-
-        # top.model.set_output_solver_options(name='comp.z', lower=1.5, upper=2.5)
-
-        top.set_solver_print(level=2)
-        # Test lower bound: should go to the lower bound and stall
-        top['px.x'] = 2.0
-        top['comp.y'] = 0.0
-        top['comp.z'] = 1.6
-        top.run_model()
-        assert_near_equal(top['comp.z'], 1.5, 1e-8)
-
-        # Test upper bound: should go to the upper bound and stall
-        top['px.x'] = 0.5
-        top['comp.y'] = 0.0
-        top['comp.z'] = 2.4
-        top.run_model()
-        assert_near_equal(top['comp.z'], 2.5, 1e-8)
-
-        #####
-        # Now without add_output
-        #
+    #
+    # def test_set_output_solver_options_top_model(self):
+    #     top = Problem()
+    #     top.model.add_subsystem('px', IndepVarComp('x', 1.0))
+    #     comp = top.model.add_subsystem('comp', ImplCompTwoStatesNoMeta())
+    #     top.model.connect('px.x', 'comp.x')
+    #
+    #     top.model.nonlinear_solver = BroydenSolver()
+    #     top.model.nonlinear_solver.options['maxiter'] = 25
+    #     top.model.nonlinear_solver.options['diverge_limit'] = 0.5
+    #     top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
+    #
+    #     top.model.linear_solver = DirectSolver()
+    #
+    #     top.model.set_output_solver_options(name='comp.z', lower=1.5, upper=2.5)
+    #
+    #     top.setup()
+    #
+    #     top.set_solver_print(level=2)
+    #     # Test lower bound: should go to the lower bound and stall
+    #     top['px.x'] = 2.0
+    #     top['comp.y'] = 0.0
+    #     top['comp.z'] = 1.6
+    #     top.run_model()
+    #     assert_near_equal(top['comp.z'], 1.5, 1e-8)
+    #
+    #     # Test upper bound: should go to the upper bound and stall
+    #     top['px.x'] = 0.5
+    #     top['comp.y'] = 0.0
+    #     top['comp.z'] = 2.4
+    #     top.run_model()
+    #     assert_near_equal(top['comp.z'], 2.5, 1e-8)
+    #
+    #
+    # def test_set_output_solver_options_sub_model(self):
+    #     top = Problem()
+    #     top.model.add_subsystem('px', IndepVarComp('x', 1.0))
+    #     comp = top.model.add_subsystem('comp', ImplCompTwoStatesNoMeta())
+    #     top.model.connect('px.x', 'comp.x')
+    #
+    #     top.model.nonlinear_solver = BroydenSolver()
+    #     top.model.nonlinear_solver.options['maxiter'] = 25
+    #     top.model.nonlinear_solver.options['diverge_limit'] = 0.5
+    #     top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
+    #
+    #     top.model.linear_solver = DirectSolver()
+    #
+    #     top.model.set_output_solver_options(name='comp.z', lower=1.5, upper=2.5)
+    #
+    #     top.setup()
+    #
+    #     top.set_solver_print(level=2)
+    #     # Test lower bound: should go to the lower bound and stall
+    #     top['px.x'] = 2.0
+    #     top['comp.y'] = 0.0
+    #     top['comp.z'] = 1.6
+    #     top.run_model()
+    #     assert_near_equal(top['comp.z'], 1.5, 1e-8)
+    #
+    #     # Test upper bound: should go to the upper bound and stall
+    #     top['px.x'] = 0.5
+    #     top['comp.y'] = 0.0
+    #     top['comp.z'] = 2.4
+    #     top.run_model()
+    #     assert_near_equal(top['comp.z'], 2.5, 1e-8)
+    #
+    #
+    # def test_set_output_solver_options_res_with_meta(self):
+    #
+    #     prob = Problem()
+    #     model = prob.model
+    #
+    #     model.add_subsystem('p1', IndepVarComp('x1', 1.0))
+    #     model.add_subsystem('p2', IndepVarComp('x2', 1.0))
+    #     comp = model.add_subsystem('comp', ScalingExample3())
+    #     model.connect('p1.x1', 'comp.x1')
+    #     model.connect('p2.x2', 'comp.x2')
+    #
+    #
+    #     # comp.set_output_solver_options(name='y1', ref=1e2, res_ref=1e5)
+    #     # comp.set_output_solver_options(name='y2', ref=1e3, res_ref=1e-5)
+    #
+    #     # self.add_output('y1', val=200., ref=1e2, res_ref=1e5)
+    #     # self.add_output('y2', val=6000., ref=1e3, res_ref=1e-5)
+    #
+    #
+    #
+    #
+    #     prob.setup()
+    #     prob.run_model()
+    #
+    #     model.run_apply_nonlinear()
+    #
+    #     with model._scaled_context_all():
+    #         val = model.comp._residuals['y1']
+    #         assert_near_equal(val, -.995)
+    #         val = model.comp._residuals['y2']
+    #         assert_near_equal(val, (1-6000.)/6000.)
+    #
+    #
+    #
+    # def test_set_output_solver_options_res_no_meta(self):
+    #
+    #     prob = Problem()
+    #     model = prob.model
+    #
+    #     model.add_subsystem('p1', IndepVarComp('x1', 1.0))
+    #     model.add_subsystem('p2', IndepVarComp('x2', 1.0))
+    #     comp = model.add_subsystem('comp', ScalingExample3NoMeta())
+    #     model.connect('p1.x1', 'comp.x1')
+    #     model.connect('p2.x2', 'comp.x2')
+    #
+    #
+    #     # comp.set_output_solver_options(name='y1', ref=1e2, res_ref=1e5)
+    #     # comp.set_output_solver_options(name='y2', ref=1e3, res_ref=1e-5)
+    #
+    #     model.set_output_solver_options(name='comp.y1', ref=1e2, res_ref=1e5)
+    #     model.set_output_solver_options(name='comp.y2', ref=1e3, res_ref=1e-5)
+    #
+    #
+    #     comp._has_output_scaling = True
+    #     comp._has_resid_scaling = True
+    #
+    #     model._has_output_scaling = True
+    #     model._has_resid_scaling = True
+    #
+    #
+    #     # self.add_output('y1', val=200., ref=1e2, res_ref=1e5)
+    #     # self.add_output('y2', val=6000., ref=1e3, res_ref=1e-5)
+    #
+    #
+    #
+    #
+    #     prob.setup()
+    #     prob.run_model()
+    #
+    #     model.run_apply_nonlinear()
+    #
+    #     with model._scaled_context_all():
+    #         val = model.comp._residuals['y1']
+    #         assert_near_equal(val, -.995)
+    #         val = model.comp._residuals['y2']
+    #         assert_near_equal(val, (1-6000.)/6000.)
+    #
+    #
+    # def test_set_output_solver_options_qqq(self):
         # top = Problem()
         # top.model.add_subsystem('px', IndepVarComp('x', 1.0))
-        # # top.model.add_subsystem('comp', ImplCompTwoStatesArraysNoLowerUpperAddOutput())
-        # top.model.add_subsystem('comp', ImplCompTwoStatesArrays())
+        # top.model.add_subsystem('comp', ImplCompTwoStates())
         # top.model.connect('px.x', 'comp.x')
         #
         # top.model.nonlinear_solver = BroydenSolver()
@@ -476,8 +586,68 @@ class TestSystem(unittest.TestCase):
         #
         # top.setup()
         #
-        # top.model.set_output_solver_options(name='comp.z', lower=1.5,
-        #                                     upper=np.array([2.6, 2.5, 2.65]).reshape((3, 1)))
+        # top.set_solver_print(level=2)
+        # # Test lower bound: should go to the lower bound and stall
+        # top['px.x'] = 2.0
+        # top['comp.y'] = 0.0
+        # top['comp.z'] = 1.6
+        # top.run_model()
+        # assert_near_equal(top['comp.z'], 1.5, 1e-8)
+        #
+        # # Test upper bound: should go to the upper bound and stall
+        # top['px.x'] = 0.5
+        # top['comp.y'] = 0.0
+        # top['comp.z'] = 2.4
+        # top.run_model()
+        # assert_near_equal(top['comp.z'], 2.5, 1e-8)
+        #
+        #
+        # #
+        # top = Problem()
+        # top.model.add_subsystem('px', IndepVarComp('x', 1.0))
+        # top.model.add_subsystem('comp', ImplCompTwoStatesNoMeta())
+        # top.model.connect('px.x', 'comp.x')
+        #
+        # top.model.nonlinear_solver = BroydenSolver()
+        # top.model.nonlinear_solver.options['maxiter'] = 25
+        # top.model.nonlinear_solver.options['diverge_limit'] = 0.5
+        # top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
+        #
+        # top.model.linear_solver = DirectSolver()
+        #
+        # top.setup()
+        #
+        # top.model.set_output_solver_options(name='comp.z', lower=1.5, upper=2.5)
+        #
+        # top.set_solver_print(level=2)
+        # # Test lower bound: should go to the lower bound and stall
+        # top['px.x'] = 2.0
+        # top['comp.y'] = 0.0
+        # top['comp.z'] = 1.6
+        # top.run_model()
+        # assert_near_equal(top['comp.z'], 1.5, 1e-8)
+        #
+        # #
+        # top = Problem()
+        # top.model.add_subsystem('px', IndepVarComp('x', 1.0))
+        # comp = top.model.add_subsystem('comp', ImplCompTwoStatesNoMeta())
+        # top.model.connect('px.x', 'comp.x')
+        #
+        # top.model.nonlinear_solver = BroydenSolver()
+        # top.model.nonlinear_solver.options['maxiter'] = 25
+        # top.model.nonlinear_solver.options['diverge_limit'] = 0.5
+        # top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
+        #
+        # top.model.linear_solver = DirectSolver()
+        #
+        # # comp.set_output_solver_options(name='z', lower=1.5, upper=2.5)
+        # top.model.set_output_solver_options(name='comp.z', lower=1.5, upper=2.5)
+        #
+        # top.setup()
+        #
+        #
+        # comp._has_bounds = True
+        # top.model._has_bounds = True
         #
         #
         # top.set_solver_print(level=2)
@@ -494,9 +664,46 @@ class TestSystem(unittest.TestCase):
         # top['comp.z'] = 2.4
         # top.run_model()
         # assert_near_equal(top['comp.z'], 2.5, 1e-8)
-
-
-
+        #
+        # #####
+        # # Now without add_output
+        # #
+        # # top = Problem()
+        # # top.model.add_subsystem('px', IndepVarComp('x', 1.0))
+        # # # top.model.add_subsystem('comp', ImplCompTwoStatesArraysNoLowerUpperAddOutput())
+        # # top.model.add_subsystem('comp', ImplCompTwoStatesArrays())
+        # # top.model.connect('px.x', 'comp.x')
+        # #
+        # # top.model.nonlinear_solver = BroydenSolver()
+        # # top.model.nonlinear_solver.options['maxiter'] = 25
+        # # top.model.nonlinear_solver.options['diverge_limit'] = 0.5
+        # # top.model.nonlinear_solver.options['state_vars'] = ['comp.y', 'comp.z']
+        # #
+        # # top.model.linear_solver = DirectSolver()
+        # #
+        # # top.setup()
+        # #
+        # # top.model.set_output_solver_options(name='comp.z', lower=1.5,
+        # #                                     upper=np.array([2.6, 2.5, 2.65]).reshape((3, 1)))
+        # #
+        # #
+        # # top.set_solver_print(level=2)
+        # # # Test lower bound: should go to the lower bound and stall
+        # # top['px.x'] = 2.0
+        # # top['comp.y'] = 0.0
+        # # top['comp.z'] = 1.6
+        # # top.run_model()
+        # # assert_near_equal(top['comp.z'], 1.5, 1e-8)
+        # #
+        # # # Test upper bound: should go to the upper bound and stall
+        # # top['px.x'] = 0.5
+        # # top['comp.y'] = 0.0
+        # # top['comp.z'] = 2.4
+        # # top.run_model()
+        # # assert_near_equal(top['comp.z'], 2.5, 1e-8)
+        #
+        #
+        #
 
 
 

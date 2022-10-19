@@ -37,7 +37,7 @@ from openmdao.utils.om_warnings import issue_warning, DerivativesWarning, Promot
     UnusedOptionWarning, warn_deprecation
 from openmdao.utils.general_utils import determine_adder_scaler, \
     format_as_float_or_array, ContainsAll, all_ancestors, make_set, match_prom_or_abs, \
-        conditional_error, env_truthy
+        conditional_error, env_truthy, ensure_compatible
 from openmdao.approximation_schemes.complex_step import ComplexStep
 from openmdao.approximation_schemes.finite_difference import FiniteDifference
 
@@ -518,6 +518,9 @@ class System(object):
         self._tot_jac = None
         self._raise_connection_errors = True
 
+
+        self._output_solver_options = {}
+
     @property
     def under_approx(self):
         """
@@ -682,9 +685,37 @@ class System(object):
         """
         pass
 
-    def set_output_solver_options(self, name=None, lower=None, upper=None,
-                              ref=None, ref0=None, res_ref=None):
+    def set_output_solver_options(self, name, lower=_UNDEFINED, upper=_UNDEFINED,
+                              ref=_UNDEFINED, ref0=_UNDEFINED, res_ref=_UNDEFINED):
         from openmdao.utils.general_utils import ensure_compatible
+
+        output_solver_options = {}
+        from openmdao.core.group import Group
+
+        if isinstance(self, Group):
+            subsys_path, name = name.rsplit('.', 1)
+            subsys = self._get_subsystem(subsys_path)
+        else:
+            subsys = self
+
+        if lower is not _UNDEFINED:
+            output_solver_options['lower'] = lower
+        if upper is not _UNDEFINED:
+            output_solver_options['upper'] = upper
+        if ref is not _UNDEFINED:
+            output_solver_options['ref'] = ref
+        if ref0 is not _UNDEFINED:
+            output_solver_options['ref0'] = ref0
+        if res_ref is not _UNDEFINED:
+            output_solver_options['res_ref'] = res_ref
+
+        # self._output_solver_options[name] = output_solver_options
+        subsys._output_solver_options[name] = output_solver_options
+
+        return
+
+        # name is rel name
+
 
         # Need to find output based on the output path aka name, relative to this
         #  System or Component
@@ -692,15 +723,30 @@ class System(object):
         # Need to get the shape value
 
 
+
+
         vars =  self._var_abs2meta['output']
 
-        metadatadict = vars[name]
+
+        prefix = self.pathname + '.' if self.pathname else ''
+
+        abs_name = prefix + name
+
+
+        # return sorted(list(self._var_allprocs_abs2meta['output']) +
+        #               [prefix + n for n in self._var_discrete['output']])
+
+
+
+        # outputs = self.list_outputs()
+
+        metadatadict = vars[abs_name]
         shape = metadatadict['shape']
         # self here is System/Component
 
         if lower is not None:
             lower = ensure_compatible(name, lower, shape)[0]
-            self._has_bounds = True
+            self._has_bounds = True    #### Somehow, top.model._has_bounds also gets set to True !?!?!?!?!
         if upper is not None:
             upper = ensure_compatible(name, upper, shape)[0]
             self._has_bounds = True
@@ -712,6 +758,89 @@ class System(object):
             'lower': lower,
             'upper': upper,
         })
+
+
+    def _apply_output_solver_options(self):
+        for name, options in self._output_solver_options.items():
+
+
+            # Does not work if self is a Component
+            from openmdao.core.group import Group
+
+            if isinstance(self, Group):
+                subsys_path = name.rsplit('.', 1)[0]
+                subsys = self._get_subsystem(subsys_path)
+            else:
+                subsys = self
+
+            # vars = subsys._var_abs2meta['output']
+            # vars = self._var_abs2meta['output']
+            prefix = self.pathname + '.' if self.pathname else ''
+            abs_name = prefix + name
+
+            # Do I need to do this for self for subsys ?
+
+            # abs2meta = self._var_abs2meta['output']
+            # allprocs_abs2meta = self._var_allprocs_abs2meta['output']
+            abs2meta = subsys._var_abs2meta['output']
+            allprocs_abs2meta = subsys._var_allprocs_abs2meta['output']
+
+            metadatadict_abs2meta = abs2meta[abs_name]
+            metadatadict_allprocs_abs2meta = allprocs_abs2meta[abs_name]
+
+            for meta_key in ['ref', 'ref0', 'res_ref', 'lower', 'upper']:
+                if meta_key in options and options[meta_key] is not None:
+                    if meta_key in ['lower', 'upper']:
+                        self._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
+                        subsys._has_bounds = True  #### Somehow, top.model._has_bounds also gets set to
+
+                    if meta_key == 'ref':
+                        ref = options['ref']
+                        if np.isscalar(ref):
+                            self._has_output_scaling |= ref != 1.0
+                            subsys._has_output_scaling |= ref != 1.0
+                        else:
+                            self._has_output_scaling |= np.any(ref != 1.0)
+                            subsys._has_output_scaling |= np.any(ref != 1.0)
+
+                    if meta_key == 'ref0':
+                        ref0 = options['ref0']
+                        if np.isscalar(ref0):
+                            self._has_output_scaling |= ref0 != 0.0
+                            self._has_output_adder |= ref0 != 0.0
+                            subsys._has_output_scaling |= ref0 != 0.0
+                            subsys._has_output_adder |= ref0 != 0.0
+                        else:
+                            self._has_output_scaling |= np.any(ref0)
+                            self._has_output_adder |= np.any(ref0)
+                            subsys._has_output_scaling |= np.any(ref0)
+                            subsys._has_output_adder |= np.any(ref0)
+
+                    if meta_key == 'res_ref':
+                        res_ref = options['res_ref']
+                        if np.isscalar(res_ref):
+                            self._has_resid_scaling |= res_ref != 1.0
+                            subsys._has_resid_scaling |= res_ref != 1.0
+                        else:
+                            self._has_resid_scaling |= np.any(res_ref != 1.0)
+                            subsys._has_resid_scaling |= np.any(res_ref != 1.0)
+
+                    shape = metadatadict_abs2meta['shape']
+                    val = ensure_compatible(name, options[meta_key], shape)[0]
+                    val_as_float_or_array = format_as_float_or_array(meta_key, val, flatten=True)
+
+                    # Setting both here because the copying of _var_abs2meta to _var_allprocs_abs2meta
+                    #   happens before this. Need to keep both up to date
+                    metadatadict_abs2meta.update({
+                        meta_key: val_as_float_or_array,
+                    })
+                    metadatadict_allprocs_abs2meta.update({
+                        meta_key: val_as_float_or_array,
+                    })
+
+
+                # ALSO have to do similar things for _has_scaling for ref, ...
+
 
 
     def initialize(self):
@@ -843,6 +972,10 @@ class System(object):
 
         raise KeyError(f"{self.msginfo}: source for '{name}' not found.")
 
+    #
+    # def _apply_output_solver_options(self):
+    #     pass
+
     def _setup(self, comm, mode, prob_meta):
         """
         Perform setup for this system and its descendant systems.
@@ -882,6 +1015,19 @@ class System(object):
 
         self._setup_var_data()
 
+        # for s in self.system_iter(recurse=True, include_self=True, typ=System):
+        #     s._apply_output_solver_options()
+
+        # have to do this again because we are passed the point in _setup_var_data when this happens
+        for subsys in self._subsystems_myproc:
+            subsys._apply_output_solver_options()
+
+            # Do we need to initialize these to false first ?
+            self._has_output_scaling |= subsys._has_output_scaling
+            self._has_output_adder |= subsys._has_output_adder
+            self._has_resid_scaling |= subsys._has_resid_scaling
+            self._has_bounds |= subsys._has_bounds
+
         # promoted names must be known to determine implicit connections so this must be
         # called after _setup_var_data, and _setup_var_data will have to be partially redone
         # after auto_ivcs have been added, but auto_ivcs can't be added until after we know all of
@@ -899,6 +1045,16 @@ class System(object):
 
         # determine which connections are managed by which group, and check validity of connections
         self._setup_connections()
+
+
+
+
+
+
+
+
+
+
 
     def _top_level_post_connections(self, mode):
         # this runs after all connections are known, and only if this is the top level system
