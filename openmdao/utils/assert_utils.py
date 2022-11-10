@@ -474,8 +474,12 @@ def assert_near_equal(actual, desired, tolerance=1e-15):
         The error.
     """
 
-    if type(actual) != type(desired):
-        raise ValueError('actual %s, desired %s have different types' % (actual, desired))
+    # if type(actual) != type(desired):   # TODO - do I want to do this ?
+    #     raise ValueError('actual %s, desired %s have different types' % (actual, desired))
+
+    # if desired is numeric list, make ndarray
+    if isinstance(desired, list):   # TODO need to check if numeric!!
+        desired = np.asarray(desired)
 
     if isinstance(actual, dict) and isinstance(desired, dict):
 
@@ -565,8 +569,11 @@ def assert_near_equal(actual, desired, tolerance=1e-15):
         for act, des in zip(actual, desired):
             new_error = assert_near_equal(act, des, tolerance)
             error = max(error, new_error)
-    else:  # Mismatched types
-        raise ValueError('actual %s, desired %s have different types' % (actual, desired))
+    else:
+        raise ValueError('actual and desired have unexpected types: %s, %s' % (type(actual), type(desired)))
+
+    # else:  # Mismatched types
+    #     raise ValueError('actual %s, desired %s have different types' % (actual, desired))
 
     return error
 
