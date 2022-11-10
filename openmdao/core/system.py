@@ -923,6 +923,10 @@ class System(object):
             msg = "{}: Constraint '{}' cannot be both equality and inequality."
             raise ValueError(msg.format(self.msginfo, name))
 
+
+        # TODO also cannot set both scaler/adder and ref/ref0
+
+
         if self._static_mode:
             responses = self._static_responses
         else:
@@ -940,7 +944,7 @@ class System(object):
 
         # If values are not being set by this call, use the values that already exist
         if lower == _UNDEFINED:
-            new_cons_meta['lower'] = curr_cons_meta['lower']
+            new_cons_meta['lower'] = curr_cons_meta['lower']   # TODO don't need to do this since it is a copy
         else:
             new_cons_meta['lower'] = lower
         if upper == _UNDEFINED:
@@ -975,17 +979,19 @@ class System(object):
             # Need to unscale the lower and upper values
             # But only if there were scaling before
             if curr_cons_meta['scaler'] is not None and curr_cons_meta['adder'] is not None:
-                if lower is not None:
+                if new_cons_meta['lower'] is not None:
                     new_cons_meta['lower'] = new_cons_meta['lower'] / curr_cons_meta['scaler'] - \
                                              curr_cons_meta['adder']
-                if upper is not None:
+                if new_cons_meta['upper'] is not None:
                     new_cons_meta['upper'] = new_cons_meta['upper'] / curr_cons_meta['scaler'] - \
                                              curr_cons_meta['adder']
 
-            new_cons_meta['scaler'] = None
-            new_cons_meta['adder'] = None
-            new_cons_meta['ref'] = None
-            new_cons_meta['ref0'] = None
+            if scaler != _UNDEFINED or adder != _UNDEFINED:
+                new_cons_meta['ref'] = None
+                new_cons_meta['ref0'] = None
+            if ref != _UNDEFINED or ref0 != _UNDEFINED:
+                new_cons_meta['scaler'] = None
+                new_cons_meta['adder'] = None
 
         # If any of the boundary conditions are set, throw away the existing boundary conditions
         if equals is not _UNDEFINED :
@@ -1006,7 +1012,7 @@ class System(object):
         if alias is not None:  # TODO? Need this ?
             name = alias
 
-        new_cons_metadata = {}
+        # new_cons_metadata = {}
 
         # Convert ref/ref0 to ndarray/float as necessary
         new_cons_meta['ref'] = format_as_float_or_array('ref', new_cons_meta['ref'],
@@ -1031,8 +1037,9 @@ class System(object):
             else:
                 new_cons_meta['lower'] = format_as_float_or_array('lower', new_cons_meta['lower'],
                                                                   flatten=True)
-                new_cons_meta['lower'] = (new_cons_meta['lower'] + new_cons_meta['adder']) * \
-                                         new_cons_meta['scaler']
+                if new_cons_meta['lower'] != - INF_BOUND:
+                    new_cons_meta['lower'] = (new_cons_meta['lower'] + new_cons_meta['adder']) * \
+                                             new_cons_meta['scaler']
         except (TypeError, ValueError):
             raise TypeError("Argument 'lower' can not be a string ('{}' given). You can not "
                             "specify a variable as lower bound. You can only provide constant "
@@ -1046,14 +1053,15 @@ class System(object):
             else:
                 new_cons_meta['upper'] = format_as_float_or_array('upper', new_cons_meta['upper'],
                                                                   flatten=True)
-                new_cons_meta['upper'] = (new_cons_meta['upper'] + new_cons_meta['adder']) * \
-                                         new_cons_meta['scaler']
+                if new_cons_meta['upper'] != INF_BOUND:
+                    new_cons_meta['upper'] = (new_cons_meta['upper'] + new_cons_meta['adder']) * \
+                                             new_cons_meta['scaler']
         except (TypeError, ValueError):
             raise TypeError("Argument 'upper' can not be a string ('{}' given). You can not "
                             "specify a variable as upper bound. You can only provide constant "
                             "float values".format(new_cons_meta['upper']))
         # Convert equals to ndarray/float as necessary
-        if equals is not None:
+        if new_cons_meta['equals'] is not None:
             try:
                 new_cons_meta['equals'] = format_as_float_or_array('equals',
                                                                    new_cons_meta['equals'],
