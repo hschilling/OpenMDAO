@@ -932,6 +932,14 @@ class System(object):
         else:
             responses = self._responses
 
+
+        # Look through responses to see if there are multiple responses with that name
+        aliases = [ resp['alias'] for key, resp in responses.items() if resp['name'] == name]
+
+        if len(aliases) > 1:
+            msg = "{}: set_objective_options called with objective variable '{}' that has multiple aliases: {}. Call set_objective_options with the 'alias' argument set to one of those aliases."
+            raise RuntimeError(msg.format(self.msginfo, name, aliases))
+
         if name not in responses:
             msg = "{}: set_objective_options called with objective variable '{}' that does not " \
                   "exist " \
