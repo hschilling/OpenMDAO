@@ -911,7 +911,7 @@ class System(object):
     def set_constraint_options(self, name, ref=_UNDEFINED, ref0=_UNDEFINED,
                                # TODO name can be name or alias
                                equals=_UNDEFINED, lower=_UNDEFINED, upper=_UNDEFINED,
-                               adder=_UNDEFINED, scaler=_UNDEFINED, alias=None):
+                               adder=_UNDEFINED, scaler=_UNDEFINED, alias=_UNDEFINED):
         # TODO - handle conflicting constraints due to aliases
 
         if not isinstance(name, str):
@@ -932,19 +932,30 @@ class System(object):
         else:
             responses = self._responses
 
-
         # Look through responses to see if there are multiple responses with that name
-        aliases = [ resp['alias'] for key, resp in responses.items() if resp['name'] == name]
+        aliases = [resp['alias'] for key, resp in responses.items() if resp['name'] == name]
 
-        if len(aliases) > 1:
+        if len(aliases) > 1 and alias is _UNDEFINED:  # TODO should this be None
             msg = "{}: set_objective_options called with objective variable '{}' that has multiple aliases: {}. Call set_objective_options with the 'alias' argument set to one of those aliases."
             raise RuntimeError(msg.format(self.msginfo, name, aliases))
 
-        if name not in responses:
+        if len(aliases)  == 0:    # TODO what if called without alias ?
             msg = "{}: set_objective_options called with objective variable '{}' that does not " \
                   "exist " \
                   "exists."
             raise RuntimeError(msg.format(self.msginfo, name))
+
+
+        if alias is not _UNDEFINED:  # TODO? Should this be _UNDEFINED ?
+            name = alias
+
+
+
+        # if alias in responses:
+        #     raise TypeError(f"Constraint alias '{alias}' is a duplicate of an existing alias or "
+        #                     "variable name.")
+
+
 
         curr_cons_meta = responses[name]
 
@@ -1017,8 +1028,6 @@ class System(object):
 
         # resp['name'] = name
         # resp['alias'] = alias
-        if alias is not None:  # TODO? Need this ?
-            name = alias
 
         # new_cons_metadata = {}
 
@@ -1092,10 +1101,6 @@ class System(object):
                 new_cons_meta['adder'] = None
         elif new_cons_meta['adder'] == 0.0:
             new_cons_meta['adder'] = None
-
-        if alias in responses:
-            raise TypeError(f"Constraint alias '{alias}' is a duplicate of an existing alias or "
-                            "variable name.")
 
         responses[name] = new_cons_meta
 
