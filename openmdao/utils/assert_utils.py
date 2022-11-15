@@ -474,8 +474,17 @@ def assert_near_equal(actual, desired, tolerance=1e-15):
         The error.
     """
 
+    NoneType = type(None)
+    _supported_types = [dict, list, str, int, bool, np.int32, float, np.ndarray, NoneType ]
+
+
+
     # if type(actual) != type(desired):   # TODO - do I want to do this ?
     #     raise ValueError('actual %s, desired %s have different types' % (actual, desired))
+
+    if type(actual) not in _supported_types:
+        warnings.warn(f"The function, assert_near_equal, does not support the type: '{type(actual)}'.")
+        return 0
 
     # if desired is numeric list, make ndarray
     if isinstance(desired, list):   # TODO need to check if numeric!!
