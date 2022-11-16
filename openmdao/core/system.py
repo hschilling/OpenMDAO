@@ -689,6 +689,11 @@ class System(object):
                               ref=_UNDEFINED, ref0=_UNDEFINED, res_ref=_UNDEFINED):
         from openmdao.utils.general_utils import ensure_compatible
 
+        # If self._problem_meta is None, then we know it is before setup
+        if self._problem_meta is not None and self._problem_meta['setup_status'] >= _SetupStatus.POST_SETUP:
+            raise RuntimeError('Cannot call set_output_solver_options after setup.')
+
+
         output_solver_options = {}
         from openmdao.core.group import Group
 
@@ -697,6 +702,10 @@ class System(object):
             subsys = self._get_subsystem(subsys_path)
         else:
             subsys = self
+
+        if name not in subsys._output_solver_options:
+            msg = "{}: set_output_solver_options called with variable '{}' that does not exist."
+            raise RuntimeError(msg.format(self.msginfo, name))
 
         if lower is not _UNDEFINED:
             output_solver_options['lower'] = lower
@@ -747,6 +756,9 @@ class System(object):
                                upper=_UNDEFINED, scaler=_UNDEFINED,
                                adder=_UNDEFINED, ref=_UNDEFINED, ref0=_UNDEFINED):
 
+        if self._problem_meta is not None and self._problem_meta['setup_status'] >= _SetupStatus.POST_SETUP:
+            raise RuntimeError('Cannot call set_design_var_options after setup.')
+
         # Name must be a string
         if not isinstance(name, str):
             raise TypeError('{}: The name argument should be a string, got {}'.format(self.msginfo,
@@ -757,7 +769,7 @@ class System(object):
             design_vars = self._design_vars
 
         if name not in design_vars:
-            msg = "{}: set_design_var_options called with design variable '{}' that does not exist exists."
+            msg = "{}: set_design_var_options called with design variable '{}' that does not exist."
             raise RuntimeError(msg.format(self.msginfo, name))
 
         existing_dv = design_vars[name]
@@ -846,6 +858,9 @@ class System(object):
     def set_objective_options(self, name, ref=_UNDEFINED, ref0=_UNDEFINED,
                       adder=_UNDEFINED, scaler=_UNDEFINED):
 
+        if self._problem_meta is not None and self._problem_meta['setup_status'] >= _SetupStatus.POST_SETUP:
+            raise RuntimeError('Cannot call set_objective_options after setup.')
+
         # Name must be a string
         if not isinstance(name, str):
             raise TypeError('{}: The name argument should be a string, got {}'.format(self.msginfo,
@@ -856,7 +871,7 @@ class System(object):
             responses = self._responses
 
         if name not in responses:
-            msg = "{}: set_objective_options called with objective variable '{}' that does not exist exists."
+            msg = "{}: set_objective_options called with objective variable '{}' that does not exist."
             raise RuntimeError(msg.format(self.msginfo, name))
 
         existing_responses = responses[name]
@@ -912,7 +927,11 @@ class System(object):
                                # TODO name can be name or alias
                                equals=_UNDEFINED, lower=_UNDEFINED, upper=_UNDEFINED,
                                adder=_UNDEFINED, scaler=_UNDEFINED, alias=_UNDEFINED):
-        # TODO - handle conflicting constraints due to aliases
+
+
+        if self._problem_meta is not None and self._problem_meta['setup_status'] >= _SetupStatus.POST_SETUP:
+            raise RuntimeError('Cannot call set_constraint_options after setup.')
+
 
         if not isinstance(name, str):
             raise TypeError('{}: The name argument should be a string, '
@@ -936,13 +955,12 @@ class System(object):
         aliases = [resp['alias'] for key, resp in responses.items() if resp['name'] == name]
 
         if len(aliases) > 1 and alias is _UNDEFINED:  # TODO should this be None
-            msg = "{}: set_objective_options called with objective variable '{}' that has multiple aliases: {}. Call set_objective_options with the 'alias' argument set to one of those aliases."
+            msg = "{}: set_constraint_options called with constraint variable '{}' that has multiple aliases: {}. Call set_objective_options with the 'alias' argument set to one of those aliases."
             raise RuntimeError(msg.format(self.msginfo, name, aliases))
 
         if len(aliases)  == 0:    # TODO what if called without alias ?
-            msg = "{}: set_objective_options called with objective variable '{}' that does not " \
-                  "exist " \
-                  "exists."
+            msg = "{}: set_constraint_options called with constraint variable '{}' that does not " \
+                  "exist."
             raise RuntimeError(msg.format(self.msginfo, name))
 
 
