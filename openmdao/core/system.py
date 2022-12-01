@@ -842,25 +842,6 @@ class System(object):
         if alias is not _UNDEFINED:  # TODO? Should this be _UNDEFINED ?
             name = alias
 
-        # # Look through responses to see if there are multiple responses with that name
-        # aliases = [resp['alias'] for key, resp in responses.items() if resp['name'] == name]
-        #
-        # if len(aliases) > 1 and alias is _UNDEFINED:  # TODO should this be None
-        #     msg = "{}: set_constraint_options called with constraint variable '{}' that has multiple aliases: {}. Call set_objective_options with the 'alias' argument set to one of those aliases."
-        #     raise RuntimeError(msg.format(self.msginfo, name, aliases))
-        #
-        # if len(aliases)  == 0:    # TODO what if called without alias ?
-        #     msg = "{}: set_constraint_options called with constraint variable '{}' that does not " \
-        #           "exist."
-        #     raise RuntimeError(msg.format(self.msginfo, name))
-        #
-        #
-        # if alias is not _UNDEFINED:  # TODO? Should this be _UNDEFINED ?
-        #     name = alias
-
-        #
-        #
-        #
         if name not in responses:
             msg = "{}: set_objective_options called with objective variable '{}' that does not exist."
             raise RuntimeError(msg.format(self.msginfo, name))
@@ -958,14 +939,6 @@ class System(object):
         if alias is not _UNDEFINED:  # TODO? Should this be _UNDEFINED ?
             name = alias
 
-
-
-        # if alias in responses:
-        #     raise TypeError(f"Constraint alias '{alias}' is a duplicate of an existing alias or "
-        #                     "variable name.")
-
-
-
         curr_cons_meta = responses[name]
 
         new_cons_meta = curr_cons_meta.copy()
@@ -1027,18 +1000,6 @@ class System(object):
             new_cons_meta['upper'] = None
         if lower is not _UNDEFINED or upper is not _UNDEFINED:
             new_cons_meta['equals'] = None
-
-        # resp = {}
-
-        # if (name in self._responses or name in self._static_responses) and alias is None:
-        #     msg = ("{}: {} '{}' already exists. Use the 'alias' argument to apply a second "
-        #            "constraint".format(self.msginfo, 'Constraint', name))
-        #     raise RuntimeError(msg.format(name))
-
-        # resp['name'] = name
-        # resp['alias'] = alias
-
-        # new_cons_metadata = {}
 
         # Convert ref/ref0 to ndarray/float as necessary
         new_cons_meta['ref'] = format_as_float_or_array('ref', new_cons_meta['ref'],
@@ -1275,12 +1236,6 @@ class System(object):
         """
         from openmdao.core.group import Group
 
-
-        # comp = self   ## TODO remove!
-
-        # Somehow need to loop over all outputs checking for scaling and bounds
-
-
         for name, options in self._output_solver_options.items():
 
             # Does not work if self is a Component
@@ -1509,10 +1464,6 @@ class System(object):
 
         raise KeyError(f"{self.msginfo}: source for '{name}' not found.")
 
-    #
-    # def _apply_output_solver_options(self):
-    #     pass
-
     def _setup(self, comm, mode, prob_meta):
         """
         Perform setup for this system and its descendant systems.
@@ -1586,16 +1537,6 @@ class System(object):
 
         # determine which connections are managed by which group, and check validity of connections
         self._setup_connections()
-
-
-
-
-
-
-
-
-
-
 
     def _top_level_post_connections(self, mode):
         # this runs after all connections are known, and only if this is the top level system
