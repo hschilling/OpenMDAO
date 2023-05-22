@@ -1,6 +1,11 @@
 import openmdao.api as om
 from openmdao.utils.assert_utils import assert_near_equal
 
+from functools import partial
+import numpy as np
+import jax
+import jax.numpy as jnp
+
 
 class ParaboloidConstraint(om.ExplicitComponent):
 
@@ -26,10 +31,6 @@ class ParaboloidConstraint(om.ExplicitComponent):
         partials['c', 'x'] = -1.
         partials['c', 'y'] = 1.
 
-from functools import partial
-import numpy as np
-import jax
-import jax.numpy as jnp
 
 # This is in here as an attempt to get more precision out of jax
 jax.config.update("jax_enable_x64", True)
@@ -73,10 +74,10 @@ class ParaboloidConstraintWithJax(om.ExplicitComponent):
         return jnp.diagonal(dx), dy
 
     def compute(self, inputs, outputs, discrete_inputs=None, discrete_outputs=None):
-        outputs['c'] = self._compute_primal(*inputs.values())
+        outputs['c'] = self._compute_primal_with_jit(*inputs.values())
 
     def compute_partials(self, inputs, partials, discrete_inputs=None):
-        dx, dy = self._compute_partials_analytic(*inputs.values())
+        dx, dy = self._compute_partials_jacfwd_with_jit(*inputs.values())
         partials['c', 'x'] = dx
         partials['c', 'y'] = dy
 
@@ -142,8 +143,8 @@ class ParaboloidWithJax(om.ExplicitComponent):
         self.add_output('f_xy', val=0.0)
 
     def setup_partials(self):
-        # Finite difference all partials.
-        self.declare_partials('*', '*', method='fd')
+        # self.declare_partials('*', '*', method='fd')
+        self.declare_partials('*', '*')
 
     # def compute(self, inputs, outputs):
     #     x = inputs['x']
@@ -180,23 +181,23 @@ class ParaboloidWithJax(om.ExplicitComponent):
 
         dummy = self.options['dummy']
 
-        dx, dy = self._compute_partials_analytic(*inputs.values())
+        dx, dy = self._compute_partials_jacfwd_with_jit(*inputs.values())
         partials['f_xy', 'x'] = dx
         partials['f_xy', 'y'] = dy
 
-#     def _tree_flatten(self):
-#         children = tuple()  # arrays / dynamic values
-#         aux_data = {'options': self.options}  # static values
-#         return (children, aux_data)
-#
-#     @classmethod
-#     def _tree_unflatten(cls, aux_data, children):
-#         return cls(*children, **aux_data)
-#
-# from jax import tree_util
-# tree_util.register_pytree_node(ParaboloidWithJax,
-#                                ParaboloidWithJax._tree_flatten,
-#                                ParaboloidWithJax._tree_unflatten)
+    def _tree_flatten(self):
+        children = tuple()  # arrays / dynamic values
+        aux_data = {'options': self.options}  # static values
+        return (children, aux_data)
+
+    @classmethod
+    def _tree_unflatten(cls, aux_data, children):
+        return cls(*children, **aux_data)
+
+from jax import tree_util
+tree_util.register_pytree_node(ParaboloidWithJax,
+                               ParaboloidWithJax._tree_flatten,
+                               ParaboloidWithJax._tree_unflatten)
 
 prob = om.Problem()
 model = prob.model
@@ -221,6 +222,11 @@ model.add_constraint('c', upper=-15.0)
 
 prob.setup(force_alloc_complex=True)
 
+def reset_problem(prob):
+    prob.set_val('x', 50.0)
+    prob.set_val('y', 50.0)
+
+
 failed = prob.run_driver()
 
 assert failed == False, "Optimization failed, info = " + str(prob.driver.pyopt_solution.optInform)
@@ -233,6 +239,6 @@ with np.printoptions(linewidth=1024):
     prob.check_partials(method='cs', compact_print=False);
 
 import timeit
-print("timeit results: ", timeit.timeit('prob.run_driver()', setup="from __main__ import prob", number=500))
+print(timeit.timeit('reset_problem(prob); prob.run_driver()', setup="from __main__ import prob, reset_problem", number=100))
 #
 #
