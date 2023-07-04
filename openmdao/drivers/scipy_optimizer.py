@@ -164,7 +164,7 @@ class ScipyOptimizeDriver(Driver):
                 import inspect
                 import pprint
                 # pprint.pprint(inspect.stack())
-                self.pub_socket.bind("tcp://127.0.0.1:1234")
+                self.pub_socket.bind("tcp://127.0.0.1:1238")
 
     def _declare_options(self):
         """

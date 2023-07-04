@@ -1077,6 +1077,17 @@ class Driver(object):
                 prob = self._problem()
                 obj_val = prob[obj_name].item()
 
+
+                prob_vars = prob.list_problem_vars()
+                dict_of_values_to_send = dict()
+                for var_type, list_of_tuples_in_type in prob_vars.items():
+                    for var_name, var_data in list_of_tuples_in_type:
+                        if var_data['size'] > 1:
+                            value_to_plot = [ np.linalg.norm(var_data['val']) ]
+                        else:
+                            value_to_plot = var_data['val']
+                        dict_of_values_to_send[var_data['name']] = value_to_plot
+
                 print(f"objectives {self.get_objective_values()}")
 
                 obj_val = self.get_objective_values()['obj_cmp.obj']
@@ -1084,10 +1095,13 @@ class Driver(object):
 
                 delta_time = time.perf_counter() - self._start_time
 
+                dict_of_values_to_send['t'] = [delta_time]
+
                 print(f"delta_time {delta_time}")
 
                 print("client send")
-                self.pub_socket.send_pyobj(dict(x=[delta_time], y=[obj_val]))
+                # self.pub_socket.send_pyobj(dict(t=[delta_time], y=[obj_val]))
+                self.pub_socket.send_pyobj(dict_of_values_to_send)
 
             if self.using_dask_distributed:
                 point_source = "something"   # Just so if executes
