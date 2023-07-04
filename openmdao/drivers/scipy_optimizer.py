@@ -152,6 +152,20 @@ class ScipyOptimizeDriver(Driver):
 
         self.cite = CITATIONS
 
+        self.using_pyzmq = True
+        if self.using_pyzmq:
+            import zmq
+
+            if not hasattr(self, 'pub_socket'):
+
+                context = zmq.Context.instance()
+                self.pub_socket = context.socket(zmq.PUB)
+                print("creating zmq client")
+                import inspect
+                import pprint
+                # pprint.pprint(inspect.stack())
+                self.pub_socket.bind("tcp://127.0.0.1:1234")
+
     def _declare_options(self):
         """
         Declare options before kwargs are processed in the init method.
@@ -262,6 +276,10 @@ class ScipyOptimizeDriver(Driver):
         bool
             Failure flag; True if failed to converge, False is successful.
         """
+        import time
+        self._start_time = time.perf_counter()
+
+
         problem = self._problem()
         opt = self.options['optimizer']
         model = problem.model

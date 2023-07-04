@@ -155,6 +155,7 @@ class Driver(object):
         self.recording_options.declare('record_residuals', types=bool, default=False,
                                        desc='Set True to record residuals at the '
                                             'driver level.')
+        self.recording_options.declare('live_plotting', default=None, desc='Set to a streamz Stream.')
 
         # What the driver supports.
         self.supports = OptionsDictionary(parent_name=type(self).__name__)
@@ -197,6 +198,39 @@ class Driver(object):
 
         # Want to allow the setting of hooks on Drivers
         _setup_hooks(self)
+
+        import pandas as pd
+        import numpy as np
+        from streamz import Stream
+        from dask.distributed import Client, Pub, Sub
+        import warnings
+        import time
+
+        time.sleep(2)
+
+        warnings.filterwarnings('ignore')
+
+        # client = Client(n_workers=8)
+        # client = Client('127.0.0.1:8243', n_workers=1)
+        self.using_dask_distributed = False
+        if self.using_dask_distributed:
+            # client = Client('tcp://127.0.0.1:58879', timeout="60s")
+
+            print("creating client")
+            client = Client('tcp://127.0.0.1:58881')
+
+            # or
+            # dask.config.set({"distributed.comm.timeouts.connect": "60s"})
+
+            self.pub = Pub('test', client=client)
+
+            def _put(x):
+                self.pub.put(x)
+
+            # Some pipeline to be defined
+            self.source = Stream()
+            self.source.sink(_put)
+
 
     def _get_inst_id(self):
         if self._problem is None:
@@ -1034,6 +1068,43 @@ class Driver(object):
         """
         status = -1 if self._problem is None else self._problem()._metadata['setup_status']
         if status >= _SetupStatus.POST_FINAL_SETUP:
+
+            print("inside driver record iteration", self.using_dask_distributed)
+            point_source = self.recording_options['live_plotting']
+
+            if self.using_pyzmq:
+                obj_name = list(self._objs.keys())[0]
+                prob = self._problem()
+                obj_val = prob[obj_name].item()
+
+                print(f"objectives {self.get_objective_values()}")
+
+                obj_val = self.get_objective_values()['obj_cmp.obj']
+                time.sleep(2)
+
+                delta_time = time.perf_counter() - self._start_time
+
+                print(f"delta_time {delta_time}")
+
+                print("client send")
+                self.pub_socket.send_pyobj(dict(x=[delta_time], y=[obj_val]))
+
+            if self.using_dask_distributed:
+                point_source = "something"   # Just so if executes
+                if point_source:
+                    import pandas as pd
+                    obj_name = list(self._objs.keys())[0]
+                    prob = self._problem()
+                    obj_val = prob[obj_name].item()
+
+                    time.sleep(2)
+
+                    print(f"sending {self.iter_count} {obj_val}")
+                    # point_source.send(pd.DataFrame([(self.iter_count, obj_val,)], columns=['x', 'y', ]))
+
+                    self.source.emit(pd.DataFrame([(self.iter_count, obj_val,)], columns=['x', 'y', ]))
+
+
             record_iteration(self, self._problem(), self._get_name())
         else:
             raise RuntimeError(f'{self.msginfo} attempted to record iteration but '
