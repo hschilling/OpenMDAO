@@ -1,19 +1,13 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# In[1]:
-
-
 from openmdao.test_suite.components.sellar import SellarDerivativesGrouped
 from openmdao.utils.assert_utils import assert_near_equal, assert_warning
 import openmdao.api as om
 
+from openmdao.recorders.plotting_recorder import PlottingRecorder
 
 import numpy as np
-
-
-# In[2]:
-
 
 prob = om.Problem()
 model = prob.model = SellarDerivativesGrouped(nonlinear_solver=om.NonlinearBlockGS,
@@ -32,24 +26,11 @@ prob.setup(check=False, mode='rev')
 # point_source = streamz.Stream()
 
 driver = prob.driver
-filename = "sellar_recording.sql"
-recorder = om.SqliteRecorder(filename, record_viewer_data=False)
-driver.recording_options['record_desvars'] = True
-driver.recording_options['record_objectives'] = True
-driver.recording_options['record_constraints'] = True
-# driver.recording_options['live_plotting'] = dfstream
-driver.recording_options['includes'] = []
+recorder = PlottingRecorder()
 driver.add_recorder(recorder)
 
-
-# In[3]:
-
-
+prob.set_val('x', 3.0)
+prob.set_val('z', np.array([2.0, 2.0]))
+# prob.final_setup()
 prob.run_driver()
-
-
-# In[ ]:
-
-
-
 

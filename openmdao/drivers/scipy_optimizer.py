@@ -156,15 +156,15 @@ class ScipyOptimizeDriver(Driver):
         if self.using_pyzmq:
             import zmq
 
-            if not hasattr(self, 'pub_socket'):
-
-                context = zmq.Context.instance()
-                self.pub_socket = context.socket(zmq.PUB)
-                print("creating zmq client")
-                import inspect
-                import pprint
-                # pprint.pprint(inspect.stack())
-                self.pub_socket.bind("tcp://127.0.0.1:1238")
+            # if not hasattr(self, 'pub_socket'):
+            #
+            #     context = zmq.Context.instance()
+            #     self.pub_socket = context.socket(zmq.PUB)
+            #     print("creating zmq client")
+            #     import inspect
+            #     import pprint
+            #     # pprint.pprint(inspect.stack())
+            #     self.pub_socket.bind("tcp://127.0.0.1:1238")
 
     def _declare_options(self):
         """
