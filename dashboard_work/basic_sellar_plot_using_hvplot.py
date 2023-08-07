@@ -19,7 +19,7 @@ import panel as pn # Panel is a simple, flexible and enterprise-ready data app f
 
 
 pn.extension(sizing_mode="stretch_width")
-pd.set_option("precision", 0)
+pd.set_option("display.precision", 0)
 
 PALETTE = ["#ff6f69", "#ffcc5c", "#88d8b0", ]
 ACCENT_BASE_COLOR = PALETTE[0]
@@ -60,7 +60,7 @@ failed = prob.run_driver()
 
 
 # In[9]:
-
+print(prob.list_problem_vars())
 
 cr = om.CaseReader(filename)
 driver_cases = cr.list_cases('driver', out_stream=None)

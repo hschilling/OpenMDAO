@@ -1,6 +1,7 @@
 """
 Class definition for CaseRecorder, the base class for all recorders.
 """
+import json
 import time
 
 from openmdao.core.system import System
@@ -78,6 +79,11 @@ class PlottingRecorder(CaseRecorder):
 
         print(f'----- \n\nsending {varnames_list_of_dict=}\n\n')
         self.pub_socket.send_pyobj(varnames_list_of_dict)
+
+        with open("plotting_vars.txt", "w") as fp:
+            json.dump(varnames_list_of_dict, fp)  # encode dict into JSON
+
+
 
     def record_viewer_data(self, model_viewer_data):
         pass
