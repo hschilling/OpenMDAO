@@ -1,0 +1,184 @@
+{
+  "prompts": [
+    {
+      "id": "basic-001",
+      "category": "basic_concepts",
+      "prompt": "What is OpenMDAO?",
+      "rubric": {
+        "mentions_dataflow_graph_or_similar": 1,
+        "lists_5_building_blocks": 2,
+        "distinguishes_from_procedural": 1,
+        "uses_circuit_board_or_similar_metaphor": 1,
+        "max_score": 5
+      }
+    },
+    {
+      "id": "basic-002",
+      "category": "basic_concepts",
+      "prompt": "What is the difference between an ExplicitComponent and an ImplicitComponent?",
+      "rubric": {
+        "explicit_outputs_directly_computed": 2,
+        "implicit_outputs_satisfy_residual": 2,
+        "mentions_when_to_use_each": 2,
+        "max_score": 6
+      }
+    },
+    {
+      "id": "antipattern-001",
+      "category": "anti_pattern_detection",
+      "prompt": "I have two components. Component A has output 'temperature' and Component B has input 'temperature'. Both use promotes=['*']. Will they connect correctly, and is this a good practice?",
+      "rubric": {
+        "warns_about_silent_collision": 3,
+        "recommends_explicit_promotes_lists": 2,
+        "suggests_list_connections_verification": 2,
+        "explains_why_dangerous": 2,
+        "max_score": 9
+      }
+    },
+    {
+      "id": "antipattern-002",
+      "category": "anti_pattern_detection",
+      "prompt": "Should I put my entire aerodynamics analysis in one ExplicitComponent? It is about 500 lines of code.",
+      "rubric": {
+        "recommends_decomposition": 3,
+        "explains_benefits_of_smaller_components": 2,
+        "suggests_grouping_related_components": 2,
+        "max_score": 7
+      }
+    },
+    {
+      "id": "antipattern-003",
+      "category": "anti_pattern_detection",
+      "prompt": "I do not need analytic derivatives because I am only running the model once, not optimizing. Can I skip declaring partials entirely?",
+      "rubric": {
+        "advises_against_skipping_setup_partials": 2,
+        "recommends_method_fd_as_starting_point": 2,
+        "mentions_future_optimization_compatibility": 2,
+        "max_score": 6
+      }
+    },
+    {
+      "id": "convergence-001",
+      "category": "convergence_debugging",
+      "prompt": "My solver says 'NL: NLBGS Failed to Converge in 100 iterations'. What do I do?",
+      "rubric": {
+        "suggests_better_initial_values": 1,
+        "suggests_increase_maxiter": 1,
+        "suggests_relax_tolerance": 1,
+        "suggests_try_newton_solver": 2,
+        "suggests_check_model_correctness": 1,
+        "presents_in_order_of_complexity": 1,
+        "max_score": 7
+      }
+    },
+    {
+      "id": "convergence-002",
+      "category": "convergence_debugging",
+      "prompt": "My optimizer is taking 500 iterations and not converging. My design variable ranges from 0 to 100,000.",
+      "rubric": {
+        "identifies_scaling_as_likely_cause": 3,
+        "recommends_ref_value_on_design_var": 2,
+        "explains_order_1_rule": 2,
+        "shows_correct_add_design_var_with_ref": 1,
+        "max_score": 8
+      }
+    },
+    {
+      "id": "code-gen-001",
+      "category": "code_generation_simple",
+      "prompt": "Create a paraboloid component.",
+      "rubric": {
+        "uses_om_alias": 1,
+        "inherits_explicit_component": 1,
+        "has_setup_method": 1,
+        "has_setup_partials_method": 1,
+        "has_compute_method": 1,
+        "correct_paraboloid_formula": 1,
+        "max_score": 6
+      }
+    },
+    {
+      "id": "code-gen-002",
+      "category": "code_generation_constrained",
+      "prompt": "Create a component for lift force using L = 0.5 * rho * V^2 * S * Cl. Make sure I can use this in optimization later.",
+      "rubric": {
+        "includes_units_on_physical_quantities": 2,
+        "uses_descriptive_variable_names": 1,
+        "includes_setup_partials": 2,
+        "mentions_analytic_derivatives_for_optimization": 2,
+        "warns_about_fd_for_optimization": 1,
+        "max_score": 8
+      }
+    },
+    {
+      "id": "code-gen-003",
+      "category": "code_generation_constrained",
+      "prompt": "Write an ImplicitComponent that solves x^2 = a for x.",
+      "rubric": {
+        "uses_apply_nonlinear_for_residual": 2,
+        "residual_writes_to_residuals_not_outputs": 2,
+        "includes_jacobian_x_x_partial": 3,
+        "uses_linearize_method": 1,
+        "mentions_solver_needed_at_group_level": 2,
+        "max_score": 10
+      }
+    },
+    {
+      "id": "verification-001",
+      "category": "project_convention",
+      "prompt": "I added analytic derivatives to all my components. check_partials passed. Should I optimize now?",
+      "rubric": {
+        "recommends_check_totals_first": 3,
+        "explains_partials_vs_totals_difference": 2,
+        "shows_verification_chain": 2,
+        "max_score": 7
+      }
+    },
+    {
+      "id": "verification-002",
+      "category": "project_convention",
+      "prompt": "What is the recommended workflow for adding analytic derivatives to a component?",
+      "rubric": {
+        "recommends_starting_with_method_fd": 2,
+        "shows_compute_partials_replacement": 2,
+        "recommends_check_partials_with_cs_method": 2,
+        "mentions_force_alloc_complex": 1,
+        "max_score": 7
+      }
+    },
+    {
+      "id": "api-modern-001",
+      "category": "recent_api",
+      "prompt": "How do I declare a design variable for optimization in OpenMDAO?",
+      "rubric": {
+        "uses_modern_set_val_approach": 2,
+        "does_not_unnecessarily_use_indepvarcomp": 2,
+        "shows_add_design_var_directly": 1,
+        "max_score": 5
+      }
+    },
+    {
+      "id": "api-modern-002",
+      "category": "recent_api",
+      "prompt": "Show me how to set input values before running my model.",
+      "rubric": {
+        "uses_prob_set_val": 2,
+        "shows_units_argument_optional": 1,
+        "no_unnecessary_indepvarcomp": 1,
+        "max_score": 4
+      }
+    },
+    {
+      "id": "debug-001",
+      "category": "convergence_debugging",
+      "prompt": "I am getting wrong results from my model. The component math looks correct. How do I debug?",
+      "rubric": {
+        "recommends_n2_diagram": 2,
+        "recommends_list_connections": 2,
+        "recommends_list_inputs_outputs": 1,
+        "suggests_checking_unconnected_inputs": 2,
+        "max_score": 7
+      }
+    }
+  ]
+}
